@@ -967,11 +967,9 @@
                     alert("No experimental data to export!");
                     return;
                 }
-                let csv = "Trial,Speed(m/s),Angle(deg),Height(m),Mass(kg),Diameter(mm),Drag(Cd),Wind(m/s),Range(m),Apex(m),Time(s)
-";
+                let csv = "Trial,Speed(m/s),Angle(deg),Height(m),Mass(kg),Diameter(mm),Drag(Cd),Wind(m/s),Range(m),Apex(m),Time(s)\n";
                 trials.forEach(t => {
-                    csv += `${t.id},${t.speed},${t.angle},${t.height},${t.mass},${t.size},${t.drag},${t.wind},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}
-`;
+                    csv += `${t.id},${t.speed},${t.angle},${t.height},${t.mass},${t.size},${t.drag},${t.wind},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
