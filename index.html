@@ -59,7 +59,7 @@
             display: grid;
             grid-template-columns: 380px 1fr;
             flex: 1;
-            height: calc(100vh - 65px);
+            min-height: calc(100vh - 65px);
         }
 
         @media (max-width: 1024px) {
@@ -188,6 +188,8 @@
             flex-direction: column;
             background: var(--canvas-bg);
             position: relative;
+            flex: 1;
+            min-height: 450px;
             overflow: hidden;
         }
 
@@ -227,7 +229,7 @@
             flex: 1;
             position: relative;
             width: 100%;
-            height: 100%;
+            min-height: 350px;
         }
 
         canvas {
@@ -264,7 +266,7 @@
         .data-section {
             background: var(--panel-bg);
             border-top: 1px solid var(--panel-border);
-            max-height: 220px;
+            height: 220px;
             display: flex;
             flex-direction: column;
         }
@@ -574,12 +576,15 @@
                 '#0284c7', '#e11d48', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#0d9488'
             ];
 
-            // Resize Canvas
+            // Resize Canvas safely
             function resizeCanvas() {
-                const rect = canvas.getBoundingClientRect();
-                canvas.width = rect.width * window.devicePixelRatio;
-                canvas.height = rect.height * window.devicePixelRatio;
-                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                const container = canvas.parentElement;
+                const width = container.clientWidth || 800;
+                const height = container.clientHeight || 400;
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             }
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
@@ -810,11 +815,9 @@
                     alert("No experimental data to export!");
                     return;
                 }
-                let csv = "Trial,Speed(m/s),Angle(deg),Height(m),Mass(kg),Diameter(mm),Drag(Cd),Wind(m/s),Range(m),Apex(m),Time(s)
-";
+                let csv = "Trial,Speed(m/s),Angle(deg),Height(m),Mass(kg),Diameter(mm),Drag(Cd),Wind(m/s),Range(m),Apex(m),Time(s)\n";
                 trials.forEach(t => {
-                    csv += `${t.id},${t.speed},${t.angle},${t.height},${t.mass},${t.size},${t.drag},${t.wind},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}
-`;
+                    csv += `${t.id},${t.speed},${t.angle},${t.height},${t.mass},${t.size},${t.drag},${t.wind},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
@@ -847,8 +850,13 @@
 
             // Main Animation & Rendering Loop
             function animate() {
-                const width = canvas.width / window.devicePixelRatio;
-                const height = canvas.height / window.devicePixelRatio;
+                const container = canvas.parentElement;
+                const width = container.clientWidth || 800;
+                const height = container.clientHeight || 400;
+
+                if (canvas.width === 0 || canvas.height === 0) {
+                    resizeCanvas();
+                }
 
                 ctx.clearRect(0, 0, width, height);
 
@@ -867,8 +875,8 @@
 
                 const paddingX = 80;
                 const paddingBottom = 60;
-                const renderWidth = width - paddingX - 40;
-                const renderHeight = height - paddingBottom - 40;
+                const renderWidth = Math.max(100, width - paddingX - 40);
+                const renderHeight = Math.max(100, height - paddingBottom - 40);
 
                 let baseScaleX = renderWidth / maxDistView;
                 let baseScaleY = renderHeight / maxApexView;
@@ -913,7 +921,7 @@
                 ctx.font = '11px monospace';
 
                 let visibleMetersX = (width - paddingX) / scale;
-                let gridStepX = Math.pow(10, Math.floor(Math.log10(visibleMetersX))) / 2;
+                let gridStepX = Math.pow(10, Math.floor(Math.log10(Math.max(1, visibleMetersX)))) / 2;
                 if (gridStepX <= 0) gridStepX = 1;
                 if (visibleMetersX / gridStepX > 15) gridStepX *= 2;
 
@@ -932,7 +940,7 @@
                 }
 
                 let visibleMetersY = (originY - 20) / scale;
-                let gridStepY = Math.pow(10, Math.floor(Math.log10(visibleMetersY))) / 2;
+                let gridStepY = Math.pow(10, Math.floor(Math.log10(Math.max(1, visibleMetersY)))) / 2;
                 if (gridStepY <= 0) gridStepY = 1;
                 if (visibleMetersY / gridStepY > 15) gridStepY *= 2;
 
@@ -1074,7 +1082,7 @@
                     let by = originY - curPt.y * scale;
 
                     const diameterMm = activeFlight.data.size;
-                    const visualRadius = Math.max(3, (diameterMm / 1000 / 2) * scale + 2.5);
+                    const visualRadius = Math.max(4, (diameterMm / 1000 / 2) * scale + 3);
 
                     ctx.fillStyle = '#0f172a';
                     ctx.beginPath();
