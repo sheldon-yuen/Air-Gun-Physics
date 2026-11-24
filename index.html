@@ -577,6 +577,11 @@
 
             let stickmen = [];
 
+            // Global viewport state shared between renderer and click handler
+            let lastWorldScale = 5.0;
+            let lastOriginX = 80;
+            let lastOriginY = 390;
+
             const colorPalette = [
                 '#0284c7', '#e11d48', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#0d9488'
             ];
@@ -617,25 +622,8 @@
                     const clickX = e.clientX - rect.left;
                     const clickY = e.clientY - rect.top;
 
-                    const width = canvas.parentElement.clientWidth || 800;
-                    const height = canvas.parentElement.clientHeight || 450;
-                    const paddingX = 80;
-                    const paddingBottom = 60;
-                    let maxDistView = 100;
-                    let maxApexView = 50;
-                    currentTrails.forEach(t => {
-                        if (t.range > maxDistView) maxDistView = t.range * 1.15;
-                        if (t.apex > maxApexView) maxApexView = t.apex * 1.3;
-                    });
-                    const renderWidth = Math.max(100, width - paddingX - 40);
-                    const renderHeight = Math.max(100, height - paddingBottom - 40);
-                    let baseScaleX = renderWidth / maxDistView;
-                    let baseScaleY = renderHeight / maxApexView;
-                    let scale = Math.min(baseScaleX, baseScaleY) * userZoom;
-                    let originX = paddingX + userPanX;
-                    let originY = (height - paddingBottom) + userPanY;
-
-                    const worldX = (clickX - originX) / scale;
+                    // Convert screen click directly using the latest rendered viewport transform
+                    const worldX = (clickX - lastOriginX) / lastWorldScale;
                     spawnStickman(worldX);
                 }
                 isDragging = false;
@@ -671,7 +659,7 @@
                 stickmen = [];
             };
 
-            // 4-Meter Tall Upright Stickman (Stands firm until hit)
+            // Spawn 4-Meter Tall Upright Stickman centered at clicked worldX
             function spawnStickman(x) {
                 const stickman = {
                     standing: true,
@@ -1065,6 +1053,11 @@
                         originX = paddingX + targetOffsetX + userPanX;
                     }
                 }
+
+                // Update shared viewport globals so click handler maps coordinates accurately
+                lastWorldScale = scale;
+                lastOriginX = originX;
+                lastOriginY = originY;
 
                 ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
                 ctx.lineWidth = 1;
