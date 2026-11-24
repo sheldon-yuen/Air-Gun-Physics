@@ -59,7 +59,7 @@
             display: grid;
             grid-template-columns: 380px 1fr;
             flex: 1;
-            min-height: calc(100vh - 65px);
+            height: calc(100vh - 65px);
         }
 
         @media (max-width: 1024px) {
@@ -189,7 +189,6 @@
             background: var(--canvas-bg);
             position: relative;
             flex: 1;
-            min-height: 450px;
             overflow: hidden;
         }
 
@@ -251,6 +250,7 @@
             color: var(--text-muted);
             pointer-events: none;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            z-index: 5;
         }
 
         .zoom-hint kbd {
@@ -266,7 +266,7 @@
         .data-section {
             background: var(--panel-bg);
             border-top: 1px solid var(--panel-border);
-            height: 220px;
+            height: 200px;
             display: flex;
             flex-direction: column;
         }
@@ -580,7 +580,7 @@
             function resizeCanvas() {
                 const container = canvas.parentElement;
                 const width = container.clientWidth || 800;
-                const height = container.clientHeight || 400;
+                const height = container.clientHeight || 450;
                 const dpr = window.devicePixelRatio || 1;
                 canvas.width = width * dpr;
                 canvas.height = height * dpr;
@@ -595,7 +595,7 @@
 
                 const key = e.key.toLowerCase();
                 if (key === 'q') {
-                    userZoom = Math.max(0.1, userZoom * 0.85);
+                    userZoom = Math.max(0.05, userZoom * 0.85);
                     zoomBadge.textContent = `Zoom: ${Math.round(userZoom * 100)}%`;
                 } else if (key === 'e') {
                     userZoom = Math.min(10.0, userZoom * 1.18);
@@ -639,7 +639,7 @@
                 }
 
                 let steps = 0;
-                const maxSteps = 25000;
+                const maxSteps = 35000;
 
                 while (y >= 0 && steps < maxSteps) {
                     steps++;
@@ -662,7 +662,7 @@
                     let k2x = vx + 0.5*dt*l1x, l2x = a2.ax;
                     let k2y = vy + 0.5*dt*l1y, l2y = a2.ay;
 
-                    let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l3y);
+                    let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l2y);
                     let k3x = vx + 0.5*dt*l2x, l3x = a3.ax;
                     let k3y = vy + 0.5*dt*l2y, l3y = a3.ay;
 
@@ -713,7 +713,7 @@
                 const cd = parseFloat(dragInput.value) || 0;
                 const windV = parseFloat(windInput.value) || 0;
 
-                predictedPath = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.025);
+                predictedPath = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.03);
             }
 
             // Sync Inputs
@@ -852,9 +852,9 @@
             function animate() {
                 const container = canvas.parentElement;
                 const width = container.clientWidth || 800;
-                const height = container.clientHeight || 400;
+                const height = container.clientHeight || 450;
 
-                if (canvas.width === 0 || canvas.height === 0) {
+                if (canvas.width === 0 || canvas.height === 0 || canvas.width !== width * window.devicePixelRatio) {
                     resizeCanvas();
                 }
 
