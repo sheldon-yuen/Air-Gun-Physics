@@ -228,7 +228,8 @@
             flex: 1;
             position: relative;
             width: 100%;
-            min-height: 350px;
+            height: 100%;
+            min-height: 300px;
         }
 
         canvas {
@@ -511,11 +512,10 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
+        window.addEventListener("load", () => {
             const canvas = document.getElementById('simCanvas');
             const ctx = canvas.getContext('2d');
 
-            // UI Elements
             const speedRange = document.getElementById('speedRange');
             const speedInput = document.getElementById('speedInput');
             const speedVal = document.getElementById('speedVal');
@@ -552,7 +552,6 @@
             const followCamToggle = document.getElementById('followCamToggle');
             const vacuumGhostToggle = document.getElementById('vacuumGhostToggle');
 
-            // Telemetry
             const telemRange = document.getElementById('telemRange');
             const telemApex = document.getElementById('telemApex');
             const telemTime = document.getElementById('telemTime');
@@ -560,15 +559,13 @@
             const telemMach = document.getElementById('telemMach');
             const logBody = document.getElementById('logBody');
 
-            // Simulation Constants & State
             const g = 9.8;
-            const rho = 1.225; // Air density at sea level (kg/m^3)
+            const rho = 1.225;
             let trials = [];
             let trialCounter = 0;
             let currentTrails = [];
             let predictedPath = null;
             
-            // Active animation & Zoom state
             let activeFlight = null;
             let userZoom = 1.0;
 
@@ -576,7 +573,6 @@
                 '#0284c7', '#e11d48', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#0d9488'
             ];
 
-            // Resize Canvas safely
             function resizeCanvas() {
                 const container = canvas.parentElement;
                 const width = container.clientWidth || 800;
@@ -589,10 +585,8 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Keyboard Listener for Q (Zoom Out) and E (Zoom In)
             window.addEventListener('keydown', (e) => {
                 if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-
                 const key = e.key.toLowerCase();
                 if (key === 'q') {
                     userZoom = Math.max(0.05, userZoom * 0.85);
@@ -608,7 +602,6 @@
                 zoomBadge.textContent = `Zoom: 100%`;
             };
 
-            // Physics Solver (RK4 Numerical Integration)
             function computeTrajectory(v0, angleDeg, h0, mass, diameterMm, cd, windV, stepSize = 0.01) {
                 const angleRad = angleDeg * Math.PI / 180;
                 let x = 0;
@@ -627,7 +620,6 @@
                 let maxR = 0;
                 let impactV = v0;
 
-                // Vacuum path computation
                 const vacuumPoints = [];
                 let discriminant = vy * vy + 2 * g * h0;
                 let tFlightVac = discriminant >= 0 ? (vy + Math.sqrt(discriminant)) / g : 0;
@@ -643,7 +635,6 @@
 
                 while (y >= 0 && steps < maxSteps) {
                     steps++;
-                    
                     function getAccels(px, py, pvx, pvy) {
                         const relVx = pvx - windV;
                         const relVy = pvy;
@@ -662,7 +653,7 @@
                     let k2x = vx + 0.5*dt*l1x, l2x = a2.ax;
                     let k2y = vy + 0.5*dt*l1y, l2y = a2.ay;
 
-                    let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l2y);
+                    let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l3y);
                     let k3x = vx + 0.5*dt*l2x, l3x = a3.ax;
                     let k3y = vy + 0.5*dt*l2y, l3y = a3.ay;
 
@@ -703,7 +694,6 @@
                 };
             }
 
-            // Recompute live prediction line whenever parameters change
             function updatePrediction() {
                 const v0 = parseFloat(speedInput.value) || 50;
                 const angle = parseFloat(angleInput.value) || 0;
@@ -716,7 +706,6 @@
                 predictedPath = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.03);
             }
 
-            // Sync Inputs
             function bindInputs(range, input, display, decimals = 1) {
                 range.addEventListener('input', () => {
                     input.value = range.value;
@@ -752,10 +741,8 @@
                 updatePrediction();
             };
 
-            // Initialize first prediction line
             updatePrediction();
 
-            // Fire Button Handler
             fireBtn.addEventListener('click', () => {
                 const v0 = parseFloat(speedInput.value);
                 const angle = parseFloat(angleInput.value);
@@ -848,7 +835,6 @@
                 });
             }
 
-            // Main Animation & Rendering Loop
             function animate() {
                 const container = canvas.parentElement;
                 const width = container.clientWidth || 800;
@@ -885,9 +871,6 @@
                 let originX = paddingX;
                 let originY = height - paddingBottom;
 
-                let bulletX = 0;
-                let bulletY = 0;
-
                 if (activeFlight) {
                     const pts = activeFlight.data.result.points;
                     activeFlight.currentIndex += 3;
@@ -898,8 +881,8 @@
                     }
 
                     const currentPt = pts[activeFlight.currentIndex];
-                    bulletX = currentPt.x;
-                    bulletY = currentPt.y;
+                    const bulletX = currentPt.x;
+                    const bulletY = currentPt.y;
 
                     const curSpeed = Math.sqrt(currentPt.vx * currentPt.vx + currentPt.vy * currentPt.vy);
                     telemRange.textContent = bulletX.toFixed(2) + " m";
@@ -914,7 +897,6 @@
                     }
                 }
 
-                // Draw Light Theme Background Grid & Axes
                 ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
                 ctx.lineWidth = 1;
                 ctx.fillStyle = '#475569';
@@ -955,7 +937,6 @@
                     }
                 }
 
-                // Draw Ground Baseline
                 ctx.strokeStyle = '#0284c7';
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
@@ -963,11 +944,9 @@
                 ctx.lineTo(width - 20, originY);
                 ctx.stroke();
 
-                // Draw Ground Fill Area
                 ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
                 ctx.fillRect(paddingX - 20, originY, width - paddingX + 20, height - originY);
 
-                // Draw Wind Streamlines if wind active
                 const windValNum = parseFloat(windInput.value);
                 if (Math.abs(windValNum) > 0.5) {
                     ctx.strokeStyle = 'rgba(2, 132, 199, 0.25)';
@@ -990,7 +969,6 @@
                     ctx.setLineDash([]);
                 }
 
-                // Draw Live Aim / Predicted Trajectory Line
                 if (predictLineToggle.checked && predictedPath && predictedPath.points.length > 0) {
                     const pPts = predictedPath.points;
                     ctx.strokeStyle = '#0284c7';
@@ -1026,7 +1004,6 @@
                     ctx.fillText(`Est: ${predictedPath.maxRange.toFixed(1)}m`, landX - 24, landY - 12);
                 }
 
-                // Draw Completed Trajectory Trails & Vacuum Ghosts
                 currentTrails.forEach(trail => {
                     const pts = trail.result.points;
                     const vacPts = trail.result.vacuumPoints;
@@ -1058,7 +1035,6 @@
                     ctx.stroke();
                 });
 
-                // Draw Launcher Cannon at Initial Position
                 const h0Init = parseFloat(heightInput.value);
                 const angleInit = parseFloat(angleInput.value) * Math.PI / 180;
                 let launchScreenX = originX;
@@ -1074,7 +1050,6 @@
                 ctx.fillRect(0, -6, 35, 12);
                 ctx.restore();
 
-                // Draw active bullet scaled visually according to bullet diameter
                 if (activeFlight) {
                     const pts = activeFlight.data.result.points;
                     const curPt = pts[activeFlight.currentIndex];
@@ -1092,7 +1067,6 @@
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
-                    // Velocity vector arrow
                     const vScale = 0.3;
                     ctx.strokeStyle = '#d97706';
                     ctx.lineWidth = 1.75;
