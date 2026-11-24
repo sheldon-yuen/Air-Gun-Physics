@@ -336,8 +336,8 @@
                 <div class="input-group">
                     <label>Launch Angle <span><output id="angleVal">45</output>°</span></label>
                     <div class="input-row">
-                        <input type="range" id="angleRange" min="0" max="90" step="1" value="45">
-                        <input type="number" id="angleInput" min="0" max="90" step="0.5" value="45">
+                        <input type="range" id="angleRange" min="-45" max="90" step="1" value="45">
+                        <input type="number" id="angleInput" min="-45" max="90" step="0.5" value="45">
                     </div>
                 </div>
 
@@ -352,8 +352,8 @@
                 <div class="input-group">
                     <label>Bullet Mass (kg) <span><output id="massVal">0.0050</output> kg</span></label>
                     <div class="input-row">
-                        <input type="range" id="massRange" min="0.0001" max="0.0500" step="0.0001" value="0.0050">
-                        <input type="number" id="massInput" min="0.0001" max="0.0500" step="0.0001" value="0.0050">
+                        <input type="range" id="massRange" min="0.0001" max="10.0" step="0.001" value="0.0050">
+                        <input type="number" id="massInput" min="0.0001" max="10.0" step="0.0001" value="0.0050">
                     </div>
                 </div>
             </div>
@@ -515,10 +515,6 @@
             
             // Active animation state
             let activeFlight = null;
-            let cameraX = 0;
-            let cameraY = 0;
-            let targetZoom = 1;
-            let currentZoom = 1;
 
             const colorPalette = [
                 '#38bdf8', '#f43f5e', '#10b981', '#fbbf24', '#a855f7', '#ec4899', '#6366f1', '#14b8a6'
@@ -583,15 +579,14 @@
 
                 // Vacuum path computation for comparison
                 const vacuumPoints = [];
-                let tFlightVac = (vy + Math.sqrt(vy*vy + 2*g*h0)) / g;
+                // Handle negative launch angles for vacuum time of flight
+                let discriminant = vy*vy + 2*g*h0;
+                let tFlightVac = discriminant >= 0 ? (vy + Math.sqrt(discriminant)) / g : 0;
                 for (let tv = 0; tv <= tFlightVac + 0.01; tv += 0.05) {
                     let xv = v0 * Math.cos(angleRad) * tv;
                     let yv = h0 + v0 * Math.sin(angleRad) * tv - 0.5 * g * tv * tv;
                     if (yv < 0) yv = 0;
                     vacuumPoints.push({x: xv, y: yv});
-                    if (yv > maxH) {
-                        // Keep track if needed
-                    }
                 }
 
                 // RK4 Loop for atmospheric flight
@@ -601,21 +596,16 @@
                 while (y >= 0 && steps < maxSteps) {
                     steps++;
                     
-                    // Acceleration function including wind relative velocity
-                    // F_drag = 0.5 * rho * Cd * A * v_rel^2 -> factored into kDrag / mass
                     function getAccels(px, py, pvx, pvy) {
                         const relVx = pvx - windV;
                         const relVy = pvy;
                         const vRel = Math.sqrt(relVx * relVx + relVy * relVy);
-                        // Deceleration magnitude factor: (kDrag / mass) * vRel
-                        // Note: kDrag in our simplified UI represents (0.5 * Cd * A * rho)
                         const dragCoeff = (kDrag / mass) * vRel;
                         const ax = -dragCoeff * relVx;
                         const ay = -g - dragCoeff * relVy;
                         return {ax, ay};
                     }
 
-                    // RK4 steps
                     let a1 = getAccels(x, y, vx, vy);
                     let k1x = vx, l1x = a1.ax;
                     let k1y = vy, l1y = a1.ay;
@@ -644,7 +634,6 @@
                     points.push({x, y, vx, vy, t});
 
                     if (y <= 0) {
-                        // Linear interpolation for precise ground impact
                         const prev = points[points.length - 2];
                         const frac = -prev.y / (y - prev.y);
                         x = prev.x + frac * (x - prev.x);
@@ -701,11 +690,9 @@
                 currentTrails.push(trialData);
                 updateTable();
 
-                // Initialize active live animation flight
                 activeFlight = {
                     data: trialData,
-                    currentIndex: 0,
-                    progress: 0
+                    currentIndex: 0
                 };
             });
 
@@ -765,7 +752,6 @@
                 const width = canvas.width / window.devicePixelRatio;
                 const height = canvas.height / window.devicePixelRatio;
 
-                // Determine Viewport Bounds based on active flight or latest trail
                 let maxDistView = 100;
                 let maxApexView = 50;
 
@@ -774,7 +760,6 @@
                     if (t.apex > maxApexView) maxApexView = t.apex * 1.3;
                 });
 
-                // Pixels per meter scale
                 const paddingX = 80;
                 const paddingBottom = 60;
                 const renderWidth = width - paddingX - 40;
@@ -784,17 +769,14 @@
                 let scaleY = renderHeight / maxApexView;
                 let scale = Math.min(scaleX, scaleY);
 
-                // Origin point (bottom-left of simulation area)
                 let originX = paddingX;
                 let originY = height - paddingBottom;
 
-                // Handle Smooth Follow Camera
                 let bulletX = 0;
                 let bulletY = 0;
 
                 if (activeFlight) {
                     const pts = activeFlight.data.result.points;
-                    // Advance flight speed (steps per frame)
                     activeFlight.currentIndex += 3;
                     if (activeFlight.currentIndex >= pts.length) {
                         activeFlight.currentIndex = pts.length - 1;
@@ -806,7 +788,6 @@
                     bulletX = currentPt.x;
                     bulletY = currentPt.y;
 
-                    // Update live telemetry
                     const curSpeed = Math.sqrt(currentPt.vx * currentPt.vx + currentPt.vy * currentPt.vy);
                     telemRange.textContent = bulletX.toFixed(2) + " m";
                     telemApex.textContent = activeFlight.data.result.maxApex.toFixed(2) + " m";
@@ -815,7 +796,6 @@
                     telemMach.textContent = (curSpeed / 343).toFixed(2) + " M";
 
                     if (followCamToggle.checked && activeFlight.currentIndex < pts.length - 1) {
-                        // Shift origin to follow bullet smoothly
                         const targetOffsetX = width / 3 - bulletX * scale;
                         originX += targetOffsetX;
                     }
@@ -827,7 +807,6 @@
                 ctx.fillStyle = 'var(--text-muted)';
                 ctx.font = '11px monospace';
 
-                // Vertical grid lines (meters)
                 let gridStepX = Math.pow(10, Math.floor(Math.log10(maxDistView))) / 2;
                 if (maxDistView / gridStepX > 15) gridStepX *= 2;
 
@@ -842,7 +821,6 @@
                     }
                 }
 
-                // Horizontal grid lines
                 let gridStepY = Math.pow(10, Math.floor(Math.log10(maxApexView))) / 2;
                 if (maxApexView / gridStepY > 15) gridStepY *= 2;
 
@@ -876,7 +854,6 @@
                         ctx.moveTo(paddingX, wy);
                         ctx.lineTo(width - 20, wy);
                         ctx.stroke();
-                        // Draw little arrows indicating wind direction
                         ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
                         let arrowDir = windValNum > 0 ? 1 : -1;
                         let midX = (paddingX + width) / 2;
@@ -894,7 +871,6 @@
                     const pts = trail.result.points;
                     const vacPts = trail.result.vacuumPoints;
 
-                    // Vacuum Ghost Trail
                     if (vacuumGhostToggle.checked && vacPts && vacPts.length > 0) {
                         ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
                         ctx.lineWidth = 1.5;
@@ -910,7 +886,6 @@
                         ctx.setLineDash([]);
                     }
 
-                    // Actual Atmospheric Trail
                     ctx.strokeStyle = trail.color;
                     ctx.lineWidth = 2.5;
                     ctx.beginPath();
@@ -929,11 +904,9 @@
                 let launchScreenX = originX;
                 let launchScreenY = originY - h0Init * scale;
 
-                // Cannon stand base
                 ctx.fillStyle = '#64748b';
                 ctx.fillRect(launchScreenX - 12, launchScreenY, 24, originY - launchScreenY);
 
-                // Cannon barrel
                 ctx.save();
                 ctx.translate(launchScreenX, launchScreenY);
                 ctx.rotate(-angleInit);
@@ -941,7 +914,6 @@
                 ctx.fillRect(0, -6, 35, 12);
                 ctx.restore();
 
-                // Draw active bullet in flight if animating
                 if (activeFlight) {
                     const pts = activeFlight.data.result.points;
                     const curPt = pts[activeFlight.currentIndex];
@@ -956,7 +928,6 @@
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
-                    // Velocity vector arrow
                     const vScale = 0.3;
                     ctx.strokeStyle = '#fbbf24';
                     ctx.lineWidth = 1.5;
