@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Air Gun Physics Simulation (Advanced Light Edition)</title>
+    <title>Air Gun Physics Simulation (Interactive Pointer Pan & Zoom)</title>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -240,7 +240,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            cursor: crosshair;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
         }
 
         .zoom-hint {
@@ -348,7 +352,7 @@
     <header>
         <h1>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            Air Gun Physics Lab (Light Edition)
+            Air Gun Physics Lab (Interactive Pointer Pan & Zoom)
         </h1>
         <div style="display: flex; gap: 0.75rem; align-items: center;">
             <span class="badge">Gravity: 9.8 m/s²</span>
@@ -441,14 +445,14 @@
                     Aim Line
                 </label>
                 <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-                    <input type="checkbox" id="followCamToggle" checked accent-color="var(--accent)">
+                    <input type="checkbox" id="followCamToggle" accent-color="var(--accent)">
                     Follow Cam
                 </label>
                 <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
                     <input type="checkbox" id="vacuumGhostToggle" checked accent-color="var(--accent)">
                     Vacuum Ghost
                 </label>
-                <button class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="resetZoom()">Reset Zoom</button>
+                <button class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="resetView()">Reset View</button>
             </div>
         </div>
 
@@ -478,7 +482,7 @@
             </div>
 
             <div class="canvas-container">
-                <div class="zoom-hint">Press <kbd>Q</kbd> to Zoom Out &bull; <kbd>E</kbd> to Zoom In</div>
+                <div class="zoom-hint">Drag pointer to <b>Pan</b> &bull; Scroll to <b>Zoom</b> &bull; <kbd>Q</kbd>/<kbd>E</kbd> keys</div>
                 <canvas id="simCanvas"></canvas>
             </div>
 
@@ -573,6 +577,11 @@
             
             let activeFlight = null;
             let userZoom = 1.0;
+            let userPanX = 0;
+            let userPanY = 0;
+            let isDragging = false;
+            let startMouseX = 0;
+            let startMouseY = 0;
 
             const colorPalette = [
                 '#0284c7', '#e11d48', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#0d9488'
@@ -590,6 +599,34 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
+            // Pointer Pan & Scroll Zoom Listeners
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startMouseX = e.clientX;
+                startMouseY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startMouseX;
+                const dy = e.clientY - startMouseY;
+                startMouseX = e.clientX;
+                startMouseY = e.clientY;
+                userPanX += dx;
+                userPanY += dy;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY < 0 ? 1.12 : 0.88;
+                userZoom = Math.max(0.05, Math.min(20.0, userZoom * zoomFactor));
+                zoomBadge.textContent = `Zoom: ${Math.round(userZoom * 100)}%`;
+            }, { passive: false });
+
             window.addEventListener('keydown', (e) => {
                 if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
                 const key = e.key.toLowerCase();
@@ -597,13 +634,15 @@
                     userZoom = Math.max(0.05, userZoom * 0.85);
                     zoomBadge.textContent = `Zoom: ${Math.round(userZoom * 100)}%`;
                 } else if (key === 'e') {
-                    userZoom = Math.min(10.0, userZoom * 1.18);
+                    userZoom = Math.min(20.0, userZoom * 1.18);
                     zoomBadge.textContent = `Zoom: ${Math.round(userZoom * 100)}%`;
                 }
             });
 
-            window.resetZoom = function() {
+            window.resetView = function() {
                 userZoom = 1.0;
+                userPanX = 0;
+                userPanY = 0;
                 zoomBadge.textContent = `Zoom: 100%`;
             };
 
@@ -873,8 +912,8 @@
                 let baseScaleY = renderHeight / maxApexView;
                 let scale = Math.min(baseScaleX, baseScaleY) * userZoom;
 
-                let originX = paddingX;
-                let originY = height - paddingBottom;
+                let originX = paddingX + userPanX;
+                let originY = (height - paddingBottom) + userPanY;
 
                 if (activeFlight) {
                     const pts = activeFlight.data.result.points;
@@ -898,7 +937,7 @@
 
                     if (followCamToggle.checked && activeFlight.currentIndex < pts.length - 1) {
                         const targetOffsetX = width / 3 - bulletX * scale;
-                        originX += targetOffsetX;
+                        originX = paddingX + targetOffsetX + userPanX;
                     }
                 }
 
