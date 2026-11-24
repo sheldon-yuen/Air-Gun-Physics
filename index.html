@@ -671,18 +671,18 @@
                 stickmen = [];
             };
 
-            // Spawn 4-Meter Tall Upright Stickman (Feet at y = 0)
+            // 4-Meter Tall Upright Stickman (Verlet Rigidity & Bracing)
             function spawnStickman(x) {
                 const stickman = {
                     parts: {
-                        head: {x: x, y: 4.0, vx: 0, vy: 0},
-                        neck: {x: x, y: 3.3, vx: 0, vy: 0},
-                        torso: {x: x, y: 2.2, vx: 0, vy: 0},
-                        pelvis: {x: x, y: 1.3, vx: 0, vy: 0},
-                        leftHand: {x: x - 0.7, y: 2.4, vx: 0, vy: 0},
-                        rightHand: {x: x + 0.7, y: 2.4, vx: 0, vy: 0},
-                        leftFoot: {x: x - 0.3, y: 0.0, vx: 0, vy: 0},
-                        rightFoot: {x: x + 0.3, y: 0.0, vx: 0, vy: 0}
+                        head: {x: x, y: 4.0, prevX: x, prevY: 4.0},
+                        neck: {x: x, y: 3.3, prevX: x, prevY: 3.3},
+                        torso: {x: x, y: 2.2, prevX: x, prevY: 2.2},
+                        pelvis: {x: x, y: 1.3, prevX: x, prevY: 1.3},
+                        leftHand: {x: x - 0.7, y: 2.4, prevX: x - 0.7, prevY: 2.4},
+                        rightHand: {x: x + 0.7, y: 2.4, prevX: x + 0.7, prevY: 2.4},
+                        leftFoot: {x: x - 0.3, y: 0.0, prevX: x - 0.3, prevY: 0.0},
+                        rightFoot: {x: x + 0.3, y: 0.0, prevX: x + 0.3, prevY: 0.0}
                     },
                     bones: [
                         ['head', 'neck', 0.7],
@@ -691,7 +691,10 @@
                         ['neck', 'leftHand', 1.0],
                         ['neck', 'rightHand', 1.0],
                         ['pelvis', 'leftFoot', 1.3],
-                        ['pelvis', 'rightFoot', 1.3]
+                        ['pelvis', 'rightFoot', 1.3],
+                        // Diagonal structural bracing bones to prevent collapse
+                        ['head', 'torso', 1.8],
+                        ['neck', 'pelvis', 2.0]
                     ]
                 };
                 stickmen.push(stickman);
@@ -702,22 +705,23 @@
                     const keys = Object.keys(sm.parts);
                     keys.forEach(k => {
                         let p = sm.parts[k];
-                        p.vy -= 9.8 * dt;
-                        p.vx *= 0.98;
-                        p.vy *= 0.98;
-                        p.x += p.vx * dt;
-                        p.y += p.vy * dt;
+                        let vx = (p.x - p.prevX) * 0.99;
+                        let vy = (p.y - p.prevY) * 0.99 - 9.8 * dt * dt;
+                        p.prevX = p.x;
+                        p.prevY = p.y;
+                        p.x += vx;
+                        p.y += vy;
 
-                        // Proper floor collision for ALL parts so they don't sink or pancake
+                        // Floor collision
                         if (p.y < 0) {
                             p.y = 0;
-                            p.vy = -p.vy * 0.25; // bounce damping
-                            p.vx *= 0.6; // friction
+                            let groundVx = (p.x - p.prevX) * 0.5;
+                            p.prevX = p.x - groundVx;
                         }
                     });
 
-                    // Distance constraint satisfaction (Verlet rigidity)
-                    for (let iter = 0; iter < 4; iter++) {
+                    // Distance constraint satisfaction (Verlet)
+                    for (let iter = 0; iter < 6; iter++) {
                         sm.bones.forEach(bone => {
                             let p1 = sm.parts[bone[0]];
                             let p2 = sm.parts[bone[1]];
@@ -747,10 +751,10 @@
                         let dy = p.y - bulletY;
                         let dist = Math.sqrt(dx*dx + dy*dy);
                         if (dist < 0.6) {
-                            // Realistic kinetic energy transfer impulse
-                            let impulse = bulletMass * 20.0;
-                            p.vx += (bulletVx / Math.max(1, Math.abs(bulletVx))) * impulse * 1.8;
-                            p.vy += Math.max(3.0, bulletVy * 0.3 + 4.0);
+                            // Apply realistic ragdoll impulse
+                            let impulse = bulletMass * 25.0;
+                            p.prevX -= (bulletVx / Math.max(1, Math.abs(bulletVx))) * impulse * 0.15;
+                            p.prevY -= Math.max(0.1, bulletVy * 0.02 + 0.15);
                         }
                     });
                 });
@@ -1106,7 +1110,7 @@
                 ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
                 ctx.fillRect(paddingX - 20, originY, width - paddingX + 20, height - originY);
 
-                // Draw 4m Stickmen
+                // Draw 4m Upright Stickmen
                 stickmen.forEach(sm => {
                     ctx.strokeStyle = '#0f172a';
                     ctx.lineWidth = 3.5;
