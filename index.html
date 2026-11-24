@@ -26,19 +26,19 @@
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        body {
+        body, html {
+            width: 100%;
+            height: 100vh;
             background-color: var(--bg-color);
             color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
         header {
             background: var(--panel-bg);
             border-bottom: 1px solid var(--panel-border);
-            padding: 1rem 2rem;
+            height: 60px;
+            padding: 0 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -58,14 +58,15 @@
         .main-container {
             display: grid;
             grid-template-columns: 380px 1fr;
-            flex: 1;
-            height: calc(100vh - 65px);
+            width: 100%;
+            height: calc(100vh - 60px);
         }
 
         @media (max-width: 1024px) {
             .main-container {
                 grid-template-columns: 1fr;
                 height: auto;
+                overflow-y: auto;
             }
         }
 
@@ -78,6 +79,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.25rem;
+            height: 100%;
         }
 
         .control-section {
@@ -188,7 +190,7 @@
             flex-direction: column;
             background: var(--canvas-bg);
             position: relative;
-            flex: 1;
+            height: 100%;
             overflow: hidden;
         }
 
@@ -203,6 +205,7 @@
             font-size: 0.875rem;
             z-index: 10;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
 
         .telemetry-item {
@@ -225,15 +228,16 @@
         }
 
         .canvas-container {
-            flex: 1;
             position: relative;
+            flex: 1;
             width: 100%;
-            height: 100%;
-            min-height: 300px;
+            min-height: 250px;
         }
 
         canvas {
-            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             cursor: crosshair;
@@ -268,6 +272,7 @@
             background: var(--panel-bg);
             border-top: 1px solid var(--panel-border);
             height: 200px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
         }
