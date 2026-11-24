@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Gun Physics Simulation (Advanced Edition)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --panel-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --danger: #f43f5e;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            flex: 1;
+            height: calc(100vh - 65px);
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-section {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--panel-border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .control-section h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 0.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .input-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .input-group label span {
+            color: var(--accent);
+            font-family: monospace;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            width: 90px;
+            background: var(--bg-color);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 0.35rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-family: monospace;
+            text-align: right;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        button {
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--panel-border);
+        }
+
+        button.secondary:hover {
+            background: var(--panel-border);
+            box-shadow: none;
+        }
+
+        /* Viewport Canvas Area */
+        .viewport-area {
+            display: flex;
+            flex-direction: column;
+            background: #090d16;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .telemetry-bar {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            font-size: 0.875rem;
+            z-index: 10;
+            flex-wrap: wrap;
+        }
+
+        .telemetry-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .telemetry-item .label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .telemetry-item .value {
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* Data Logger Section */
+        .data-section {
+            background: var(--panel-bg);
+            border-top: 1px solid var(--panel-border);
+            max-height: 220px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .data-header {
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .data-header h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .table-container {
+            overflow-y: auto;
+            flex: 1;
+            padding: 0 1.5rem 1rem 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+            margin-top: 0.75rem;
+        }
+
+        th, td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        td {
+            font-family: monospace;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Air Gun Physics Lab (Advanced Edition)
+        </h1>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <span class="badge">Gravity: 9.8 m/s²</span>
+            <span class="badge" id="simStatus">Ready</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>Launcher Parameters</h3>
+                
+                <div class="input-group">
+                    <label>Launch Speed <span><output id="speedVal">50.0</output> m/s</span></label>
+                    <div class="input-row">
+                        <input type="range" id="speedRange" min="5" max="300" step="1" value="50">
+                        <input type="number" id="speedInput" min="5" max="300" step="0.1" value="50.0">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Launch Angle <span><output id="angleVal">45</output>°</span></label>
+                    <div class="input-row">
+                        <input type="range" id="angleRange" min="0" max="90" step="1" value="45">
+                        <input type="number" id="angleInput" min="0" max="90" step="0.5" value="45">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Initial Height <span><output id="heightVal">0.0</output> m</span></label>
+                    <div class="input-row">
+                        <input type="range" id="heightRange" min="0" max="20" step="0.5" value="0">
+                        <input type="number" id="heightInput" min="0" max="20" step="0.1" value="0.0">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Bullet Mass (kg) <span><output id="massVal">0.0050</output> kg</span></label>
+                    <div class="input-row">
+                        <input type="range" id="massRange" min="0.0001" max="0.0500" step="0.0001" value="0.0050">
+                        <input type="number" id="massInput" min="0.0001" max="0.0500" step="0.0001" value="0.0050">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Environment & Aerodynamics</h3>
+
+                <div class="input-group">
+                    <label>Drag Coefficient (k) <span><output id="dragVal">0.0005</output> m⁻¹</span></label>
+                    <div class="input-row">
+                        <input type="range" id="dragRange" min="0" max="0.02" step="0.0001" value="0.0005">
+                        <input type="number" id="dragInput" min="0" max="0.02" step="0.0001" value="0.0005">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Wind Velocity <span><output id="windVal">0.0</output> m/s</span></label>
+                    <div class="input-row">
+                        <input type="range" id="windRange" min="-50" max="50" step="1" value="0">
+                        <input type="number" id="windInput" min="-50" max="50" step="0.5" value="0.0">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                    <button class="secondary" style="font-size: 0.8rem; padding: 0.4rem;" onclick="setPreset('vacuum')">Vacuum (k=0)</button>
+                    <button class="secondary" style="font-size: 0.8rem; padding: 0.4rem;" onclick="setPreset('pellet')">Standard Pellet</button>
+                    <button class="secondary" style="font-size: 0.8rem; padding: 0.4rem;" onclick="setPreset('highDrag')">High Drag</button>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="fireBtn">FIRE SHOT</button>
+                <button class="secondary" id="clearBtn">Clear Trails</button>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="followCamToggle" checked accent-color="var(--accent)">
+                    Follow Cam (Smooth)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="vacuumGhostToggle" checked accent-color="var(--accent)">
+                    Vacuum Ghost
+                </label>
+            </div>
+        </div>
+
+        <!-- Viewport & Data -->
+        <div class="viewport-area">
+            <div class="telemetry-bar">
+                <div class="telemetry-item">
+                    <span class="label">Distance (Range)</span>
+                    <span class="value" id="telemRange">0.00 m</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">Max Height (Apex)</span>
+                    <span class="value" id="telemApex">0.00 m</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">Flight Time</span>
+                    <span class="value" id="telemTime">0.00 s</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">Current Speed</span>
+                    <span class="value" id="telemSpeed">0.00 m/s</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">Mach Number</span>
+                    <span class="value" id="telemMach">0.00 M</span>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="simCanvas"></canvas>
+            </div>
+
+            <div class="data-section">
+                <div class="data-header">
+                    <h3>Experimental Trials Log</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="exportCSV()">Export CSV</button>
+                        <button class="secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="clearTable()">Clear Log</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="logTable">
+                        <thead>
+                            <tr>
+                                <th>Trial</th>
+                                <th>Speed (m/s)</th>
+                                <th>Angle (°)</th>
+                                <th>Height (m)</th>
+                                <th>Mass (kg)</th>
+                                <th>Drag (k)</th>
+                                <th>Wind (m/s)</th>
+                                <th>Range (m)</th>
+                                <th>Apex (m)</th>
+                                <th>Time (s)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const canvas = document.getElementById('simCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // UI Elements
+            const speedRange = document.getElementById('speedRange');
+            const speedInput = document.getElementById('speedInput');
+            const speedVal = document.getElementById('speedVal');
+
+            const angleRange = document.getElementById('angleRange');
+            const angleInput = document.getElementById('angleInput');
+            const angleVal = document.getElementById('angleVal');
+
+            const heightRange = document.getElementById('heightRange');
+            const heightInput = document.getElementById('heightInput');
+            const heightVal = document.getElementById('heightVal');
+
+            const massRange = document.getElementById('massRange');
+            const massInput = document.getElementById('massInput');
+            const massVal = document.getElementById('massVal');
+
+            const dragRange = document.getElementById('dragRange');
+            const dragInput = document.getElementById('dragInput');
+            const dragVal = document.getElementById('dragVal');
+
+            const windRange = document.getElementById('windRange');
+            const windInput = document.getElementById('windInput');
+            const windVal = document.getElementById('windVal');
+
+            const fireBtn = document.getElementById('fireBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const simStatus = document.getElementById('simStatus');
+            const followCamToggle = document.getElementById('followCamToggle');
+            const vacuumGhostToggle = document.getElementById('vacuumGhostToggle');
+
+            // Telemetry
+            const telemRange = document.getElementById('telemRange');
+            const telemApex = document.getElementById('telemApex');
+            const telemTime = document.getElementById('telemTime');
+            const telemSpeed = document.getElementById('telemSpeed');
+            const telemMach = document.getElementById('telemMach');
+            const logBody = document.getElementById('logBody');
+
+            // Simulation Constants & State
+            const g = 9.8;
+            let trials = [];
+            let trialCounter = 0;
+            let currentTrails = []; // Array of completed trajectory paths
+            
+            // Active animation state
+            let activeFlight = null;
+            let cameraX = 0;
+            let cameraY = 0;
+            let targetZoom = 1;
+            let currentZoom = 1;
+
+            const colorPalette = [
+                '#38bdf8', '#f43f5e', '#10b981', '#fbbf24', '#a855f7', '#ec4899', '#6366f1', '#14b8a6'
+            ];
+
+            // Resize Canvas
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Sync Inputs
+            function bindInputs(range, input, display, decimals = 1) {
+                range.addEventListener('input', () => {
+                    input.value = range.value;
+                    if (display) display.textContent = Number(range.value).toFixed(decimals);
+                });
+                input.addEventListener('input', () => {
+                    range.value = input.value;
+                    if (display) display.textContent = Number(input.value).toFixed(decimals);
+                });
+            }
+
+            bindInputs(speedRange, speedInput, speedVal, 1);
+            bindInputs(angleRange, angleInput, angleVal, 1);
+            bindInputs(heightRange, heightInput, heightVal, 1);
+            bindInputs(massRange, massInput, massVal, 4);
+            bindInputs(dragRange, dragInput, dragVal, 4);
+            bindInputs(windRange, windInput, windVal, 1);
+
+            window.setPreset = function(type) {
+                if (type === 'vacuum') {
+                    dragRange.value = 0; dragInput.value = 0; dragVal.textContent = '0.0000';
+                    windRange.value = 0; windInput.value = 0; windVal.textContent = '0.0';
+                } else if (type === 'pellet') {
+                    dragRange.value = 0.0005; dragInput.value = 0.0005; dragVal.textContent = '0.0005';
+                    windRange.value = 5; windInput.value = 5; windVal.textContent = '5.0';
+                } else if (type === 'highDrag') {
+                    dragRange.value = 0.0050; dragInput.value = 0.0050; dragVal.textContent = '0.0050';
+                    windRange.value = -15; windInput.value = -15; windVal.textContent = '-15.0';
+                }
+            };
+
+            // Physics Solver (RK4 Numerical Integration for Drag + Mass + Wind)
+            function computeTrajectory(v0, angleDeg, h0, mass, kDrag, windV) {
+                const angleRad = angleDeg * Math.PI / 180;
+                let x = 0;
+                let y = h0;
+                let vx = v0 * Math.cos(angleRad);
+                let vy = v0 * Math.sin(angleRad);
+
+                const points = [{x, y, vx, vy, t: 0}];
+                let dt = 0.01; // Integration step
+                let t = 0;
+                let maxH = h0;
+                let maxR = 0;
+                let impactV = v0;
+
+                // Vacuum path computation for comparison
+                const vacuumPoints = [];
+                let tFlightVac = (vy + Math.sqrt(vy*vy + 2*g*h0)) / g;
+                for (let tv = 0; tv <= tFlightVac + 0.01; tv += 0.05) {
+                    let xv = v0 * Math.cos(angleRad) * tv;
+                    let yv = h0 + v0 * Math.sin(angleRad) * tv - 0.5 * g * tv * tv;
+                    if (yv < 0) yv = 0;
+                    vacuumPoints.push({x: xv, y: yv});
+                    if (yv > maxH) {
+                        // Keep track if needed
+                    }
+                }
+
+                // RK4 Loop for atmospheric flight
+                let steps = 0;
+                const maxSteps = 25000;
+
+                while (y >= 0 && steps < maxSteps) {
+                    steps++;
+                    
+                    // Acceleration function including wind relative velocity
+                    // F_drag = 0.5 * rho * Cd * A * v_rel^2 -> factored into kDrag / mass
+                    function getAccels(px, py, pvx, pvy) {
+                        const relVx = pvx - windV;
+                        const relVy = pvy;
+                        const vRel = Math.sqrt(relVx * relVx + relVy * relVy);
+                        // Deceleration magnitude factor: (kDrag / mass) * vRel
+                        // Note: kDrag in our simplified UI represents (0.5 * Cd * A * rho)
+                        const dragCoeff = (kDrag / mass) * vRel;
+                        const ax = -dragCoeff * relVx;
+                        const ay = -g - dragCoeff * relVy;
+                        return {ax, ay};
+                    }
+
+                    // RK4 steps
+                    let a1 = getAccels(x, y, vx, vy);
+                    let k1x = vx, l1x = a1.ax;
+                    let k1y = vy, l1y = a1.ay;
+
+                    let a2 = getAccels(x + 0.5*dt*k1x, y + 0.5*dt*k1y, vx + 0.5*dt*l1x, vy + 0.5*dt*l1y);
+                    let k2x = vx + 0.5*dt*l1x, l2x = a2.ax;
+                    let k2y = vy + 0.5*dt*l1y, l2y = a2.ay;
+
+                    let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l2y);
+                    let k3x = vx + 0.5*dt*l2x, l3x = a3.ax;
+                    let k3y = vy + 0.5*dt*l2y, l3y = a3.ay;
+
+                    let a4 = getAccels(x + dt*k3x, y + dt*k3y, vx + dt*l3x, vy + dt*l3y);
+                    let k4x = vx + dt*l3x, l4x = a4.ax;
+                    let k4y = vy + dt*l3y, l4y = a4.ay;
+
+                    x += (dt / 6) * (k1x + 2*k2x + 2*k3x + k4x);
+                    y += (dt / 6) * (k1y + 2*k2y + 2*k3y + k4y);
+                    vx += (dt / 6) * (l1x + 2*l2x + 2*l3x + l4x);
+                    vy += (dt / 6) * (l1y + 2*l2y + 2*l3y + l4y);
+                    t += dt;
+
+                    if (y > maxH) maxH = y;
+                    if (x > maxR) maxR = x;
+
+                    points.push({x, y, vx, vy, t});
+
+                    if (y <= 0) {
+                        // Linear interpolation for precise ground impact
+                        const prev = points[points.length - 2];
+                        const frac = -prev.y / (y - prev.y);
+                        x = prev.x + frac * (x - prev.x);
+                        y = 0;
+                        t = prev.t + frac * dt;
+                        impactV = Math.sqrt(vx*vx + vy*vy);
+                        points[points.length - 1] = {x, y, vx, vy, t};
+                        break;
+                    }
+                }
+
+                return {
+                    points,
+                    vacuumPoints,
+                    maxRange: x,
+                    maxApex: maxH,
+                    flightTime: t,
+                    impactSpeed: impactV
+                };
+            }
+
+            // Fire Button Handler
+            fireBtn.addEventListener('click', () => {
+                const v0 = parseFloat(speedInput.value);
+                const angle = parseFloat(angleInput.value);
+                const h0 = parseFloat(heightInput.value);
+                const mass = parseFloat(massInput.value);
+                const kDrag = parseFloat(dragInput.value);
+                const windV = parseFloat(windInput.value);
+
+                simStatus.textContent = "Simulating...";
+                simStatus.style.color = "var(--accent)";
+
+                const result = computeTrajectory(v0, angle, h0, mass, kDrag, windV);
+                const color = colorPalette[trialCounter % colorPalette.length];
+
+                trialCounter++;
+                const trialData = {
+                    id: trialCounter,
+                    speed: v0,
+                    angle: angle,
+                    height: h0,
+                    mass: mass,
+                    drag: kDrag,
+                    wind: windV,
+                    range: result.maxRange,
+                    apex: result.maxApex,
+                    time: result.flightTime,
+                    color: color,
+                    result: result
+                };
+
+                trials.unshift(trialData);
+                currentTrails.push(trialData);
+                updateTable();
+
+                // Initialize active live animation flight
+                activeFlight = {
+                    data: trialData,
+                    currentIndex: 0,
+                    progress: 0
+                };
+            });
+
+            clearBtn.addEventListener('click', () => {
+                currentTrails = [];
+                activeFlight = null;
+                simStatus.textContent = "Cleared";
+                setTimeout(() => simStatus.textContent = "Ready", 1500);
+            });
+
+            window.clearTable = function() {
+                trials = [];
+                updateTable();
+            };
+
+            window.exportCSV = function() {
+                if (trials.length === 0) {
+                    alert("No experimental data to export!");
+                    return;
+                }
+                let csv = "Trial,Speed(m/s),Angle(deg),Height(m),Mass(kg),Drag(k),Wind(m/s),Range(m),Apex(m),Time(s)\n";
+                trials.forEach(t => {
+                    csv += `${t.id},${t.speed},${t.angle},${t.height},${t.mass},${t.drag},${t.wind},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `air_gun_simulation_data_${Date.now()}.csv`;
+                a.click();
+            };
+
+            function updateTable() {
+                logBody.innerHTML = '';
+                trials.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="color-dot" style="background:${t.color}"></span>#${t.id}</td>
+                        <td>${t.speed.toFixed(1)}</td>
+                        <td>${t.angle.toFixed(1)}</td>
+                        <td>${t.height.toFixed(1)}</td>
+                        <td>${t.mass.toFixed(4)}</td>
+                        <td>${t.drag.toFixed(4)}</td>
+                        <td>${t.wind.toFixed(1)}</td>
+                        <td>${t.range.toFixed(2)}</td>
+                        <td>${t.apex.toFixed(2)}</td>
+                        <td>${t.time.toFixed(2)}</td>
+                    `;
+                    logBody.appendChild(tr);
+                });
+            }
+
+            // Main Animation & Rendering Loop
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+
+                const width = canvas.width / window.devicePixelRatio;
+                const height = canvas.height / window.devicePixelRatio;
+
+                // Determine Viewport Bounds based on active flight or latest trail
+                let maxDistView = 100;
+                let maxApexView = 50;
+
+                currentTrails.forEach(t => {
+                    if (t.range > maxDistView) maxDistView = t.range * 1.15;
+                    if (t.apex > maxApexView) maxApexView = t.apex * 1.3;
+                });
+
+                // Pixels per meter scale
+                const paddingX = 80;
+                const paddingBottom = 60;
+                const renderWidth = width - paddingX - 40;
+                const renderHeight = height - paddingBottom - 40;
+
+                let scaleX = renderWidth / maxDistView;
+                let scaleY = renderHeight / maxApexView;
+                let scale = Math.min(scaleX, scaleY);
+
+                // Origin point (bottom-left of simulation area)
+                let originX = paddingX;
+                let originY = height - paddingBottom;
+
+                // Handle Smooth Follow Camera
+                let bulletX = 0;
+                let bulletY = 0;
+
+                if (activeFlight) {
+                    const pts = activeFlight.data.result.points;
+                    // Advance flight speed (steps per frame)
+                    activeFlight.currentIndex += 3;
+                    if (activeFlight.currentIndex >= pts.length) {
+                        activeFlight.currentIndex = pts.length - 1;
+                        simStatus.textContent = "Shot Completed";
+                        simStatus.style.color = "var(--success)";
+                    }
+
+                    const currentPt = pts[activeFlight.currentIndex];
+                    bulletX = currentPt.x;
+                    bulletY = currentPt.y;
+
+                    // Update live telemetry
+                    const curSpeed = Math.sqrt(currentPt.vx * currentPt.vx + currentPt.vy * currentPt.vy);
+                    telemRange.textContent = bulletX.toFixed(2) + " m";
+                    telemApex.textContent = activeFlight.data.result.maxApex.toFixed(2) + " m";
+                    telemTime.textContent = currentPt.t.toFixed(2) + " s";
+                    telemSpeed.textContent = curSpeed.toFixed(1) + " m/s";
+                    telemMach.textContent = (curSpeed / 343).toFixed(2) + " M";
+
+                    if (followCamToggle.checked && activeFlight.currentIndex < pts.length - 1) {
+                        // Shift origin to follow bullet smoothly
+                        const targetOffsetX = width / 3 - bulletX * scale;
+                        originX += targetOffsetX;
+                    }
+                }
+
+                // Draw Background Grid & Axes
+                ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.fillStyle = 'var(--text-muted)';
+                ctx.font = '11px monospace';
+
+                // Vertical grid lines (meters)
+                let gridStepX = Math.pow(10, Math.floor(Math.log10(maxDistView))) / 2;
+                if (maxDistView / gridStepX > 15) gridStepX *= 2;
+
+                for (let xM = 0; xM <= maxDistView * 2; xM += gridStepX) {
+                    let screenX = originX + xM * scale;
+                    if (screenX >= paddingX && screenX <= width - 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(screenX, 20);
+                        ctx.lineTo(screenX, originY);
+                        ctx.stroke();
+                        ctx.fillText(xM + 'm', screenX - 10, originY + 20);
+                    }
+                }
+
+                // Horizontal grid lines
+                let gridStepY = Math.pow(10, Math.floor(Math.log10(maxApexView))) / 2;
+                if (maxApexView / gridStepY > 15) gridStepY *= 2;
+
+                for (let yM = 0; yM <= maxApexView * 2; yM += gridStepY) {
+                    let screenY = originY - yM * scale;
+                    if (screenY >= 20 && screenY <= originY) {
+                        ctx.beginPath();
+                        ctx.moveTo(paddingX, screenY);
+                        ctx.lineTo(width - 20, screenY);
+                        ctx.stroke();
+                        ctx.fillText(yM + 'm', paddingX - 35, screenY + 4);
+                    }
+                }
+
+                // Draw Ground Baseline
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(paddingX - 20, originY);
+                ctx.lineTo(width - 20, originY);
+                ctx.stroke();
+
+                // Draw Wind Streamlines if wind active
+                const windValNum = parseFloat(windInput.value);
+                if (Math.abs(windValNum) > 0.5) {
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([4, 4]);
+                    for (let wy = 50; wy < originY - 20; wy += 60) {
+                        ctx.beginPath();
+                        ctx.moveTo(paddingX, wy);
+                        ctx.lineTo(width - 20, wy);
+                        ctx.stroke();
+                        // Draw little arrows indicating wind direction
+                        ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+                        let arrowDir = windValNum > 0 ? 1 : -1;
+                        let midX = (paddingX + width) / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(midX, wy);
+                        ctx.lineTo(midX - arrowDir * 10, wy - 4);
+                        ctx.lineTo(midX - arrowDir * 10, wy + 4);
+                        ctx.fill();
+                    }
+                    ctx.setLineDash([]);
+                }
+
+                // Draw Completed Trajectory Trails & Vacuum Ghosts
+                currentTrails.forEach(trail => {
+                    const pts = trail.result.points;
+                    const vacPts = trail.result.vacuumPoints;
+
+                    // Vacuum Ghost Trail
+                    if (vacuumGhostToggle.checked && vacPts && vacPts.length > 0) {
+                        ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+                        ctx.lineWidth = 1.5;
+                        ctx.setLineDash([3, 3]);
+                        ctx.beginPath();
+                        vacPts.forEach((p, idx) => {
+                            let sx = originX + p.x * scale;
+                            let sy = originY - p.y * scale;
+                            if (idx === 0) ctx.moveTo(sx, sy);
+                            else ctx.lineTo(sx, sy);
+                        });
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+
+                    // Actual Atmospheric Trail
+                    ctx.strokeStyle = trail.color;
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    pts.forEach((p, idx) => {
+                        let sx = originX + p.x * scale;
+                        let sy = originY - p.y * scale;
+                        if (idx === 0) ctx.moveTo(sx, sy);
+                        else ctx.lineTo(sx, sy);
+                    });
+                    ctx.stroke();
+                });
+
+                // Draw Launcher Cannon at Initial Position
+                const h0Init = parseFloat(heightInput.value);
+                const angleInit = parseFloat(angleInput.value) * Math.PI / 180;
+                let launchScreenX = originX;
+                let launchScreenY = originY - h0Init * scale;
+
+                // Cannon stand base
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(launchScreenX - 12, launchScreenY, 24, originY - launchScreenY);
+
+                // Cannon barrel
+                ctx.save();
+                ctx.translate(launchScreenX, launchScreenY);
+                ctx.rotate(-angleInit);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(0, -6, 35, 12);
+                ctx.restore();
+
+                // Draw active bullet in flight if animating
+                if (activeFlight) {
+                    const pts = activeFlight.data.result.points;
+                    const curPt = pts[activeFlight.currentIndex];
+                    let bx = originX + curPt.x * scale;
+                    let by = originY - curPt.y * scale;
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = activeFlight.data.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Velocity vector arrow
+                    const vScale = 0.3;
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by);
+                    ctx.lineTo(bx + curPt.vx * vScale, by - curPt.vy * vScale);
+                    ctx.stroke();
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            requestAnimationFrame(animate);
+        });
+    </script>
+</body>
+</html>
