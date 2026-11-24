@@ -427,12 +427,16 @@
                 <button class="secondary" id="clearBtn">Clear Trails</button>
             </div>
             
-            <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); background: #f8fafc; border: 1px solid var(--panel-border); padding: 0.75rem; border-radius: 0.5rem;">
-                <label style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer;">
+            <div style="display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted); background: #f8fafc; border: 1px solid var(--panel-border); padding: 0.75rem; border-radius: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                    <input type="checkbox" id="predictLineToggle" checked accent-color="var(--accent)">
+                    Aim Line
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
                     <input type="checkbox" id="followCamToggle" checked accent-color="var(--accent)">
                     Follow Cam
                 </label>
-                <label style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
                     <input type="checkbox" id="vacuumGhostToggle" checked accent-color="var(--accent)">
                     Vacuum Ghost
                 </label>
@@ -542,6 +546,7 @@
             const clearBtn = document.getElementById('clearBtn');
             const simStatus = document.getElementById('simStatus');
             const zoomBadge = document.getElementById('zoomBadge');
+            const predictLineToggle = document.getElementById('predictLineToggle');
             const followCamToggle = document.getElementById('followCamToggle');
             const vacuumGhostToggle = document.getElementById('vacuumGhostToggle');
 
@@ -559,6 +564,7 @@
             let trials = [];
             let trialCounter = 0;
             let currentTrails = [];
+            let predictedPath = null;
             
             // Active animation & Zoom state
             let activeFlight = null;
@@ -580,7 +586,6 @@
 
             // Keyboard Listener for Q (Zoom Out) and E (Zoom In)
             window.addEventListener('keydown', (e) => {
-                // Ignore key presses if typing inside a numeric input box
                 if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
 
                 const key = e.key.toLowerCase();
@@ -598,61 +603,26 @@
                 zoomBadge.textContent = `Zoom: 100%`;
             };
 
-            // Sync Inputs
-            function bindInputs(range, input, display, decimals = 1) {
-                range.addEventListener('input', () => {
-                    input.value = range.value;
-                    if (display) display.textContent = Number(range.value).toFixed(decimals);
-                });
-                input.addEventListener('input', () => {
-                    range.value = input.value;
-                    if (display) display.textContent = Number(input.value).toFixed(decimals);
-                });
-            }
-
-            bindInputs(speedRange, speedInput, speedVal, 1);
-            bindInputs(angleRange, angleInput, angleVal, 1);
-            bindInputs(heightRange, heightInput, heightVal, 1);
-            bindInputs(massRange, massInput, massVal, 4);
-            bindInputs(sizeRange, sizeInput, sizeVal, 1);
-            bindInputs(dragRange, dragInput, dragVal, 2);
-            bindInputs(windRange, windInput, windVal, 1);
-
-            window.setPreset = function(type) {
-                if (type === 'vacuum') {
-                    dragRange.value = 0; dragInput.value = 0; dragVal.textContent = '0.00';
-                    windRange.value = 0; windInput.value = 0; windVal.textContent = '0.0';
-                } else if (type === 'pellet') {
-                    dragRange.value = 0.47; dragInput.value = 0.47; dragVal.textContent = '0.47';
-                    windRange.value = 5; windInput.value = 5; windVal.textContent = '5.0';
-                } else if (type === 'highDrag') {
-                    dragRange.value = 1.15; dragInput.value = 1.15; dragVal.textContent = '1.15';
-                    windRange.value = -15; windInput.value = -15; windVal.textContent = '-15.0';
-                }
-            };
-
-            // Physics Solver (RK4 Numerical Integration accounting for Diameter/Cross-Sectional Area, Mass, Cd, and Wind)
-            function computeTrajectory(v0, angleDeg, h0, mass, diameterMm, cd, windV) {
+            // Physics Solver (RK4 Numerical Integration)
+            function computeTrajectory(v0, angleDeg, h0, mass, diameterMm, cd, windV, stepSize = 0.01) {
                 const angleRad = angleDeg * Math.PI / 180;
                 let x = 0;
                 let y = h0;
                 let vx = v0 * Math.cos(angleRad);
                 let vy = v0 * Math.sin(angleRad);
 
-                // Cross-sectional area A = pi * r^2 (in square meters)
                 const radiusM = (diameterMm / 1000) / 2;
                 const area = Math.PI * radiusM * radiusM;
-                // Aerodynamic drag constant k = 0.5 * rho * Cd * A
                 const kAerodynamic = 0.5 * rho * cd * area;
 
                 const points = [{x, y, vx, vy, t: 0}];
-                let dt = 0.01;
+                let dt = stepSize;
                 let t = 0;
                 let maxH = h0;
                 let maxR = 0;
                 let impactV = v0;
 
-                // Vacuum path computation for comparison
+                // Vacuum path computation
                 const vacuumPoints = [];
                 let discriminant = vy * vy + 2 * g * h0;
                 let tFlightVac = discriminant >= 0 ? (vy + Math.sqrt(discriminant)) / g : 0;
@@ -663,7 +633,6 @@
                     vacuumPoints.push({x: xv, y: yv});
                 }
 
-                // RK4 Loop for atmospheric flight
                 let steps = 0;
                 const maxSteps = 25000;
 
@@ -729,12 +698,65 @@
                 };
             }
 
+            // Recompute live prediction line whenever parameters change
+            function updatePrediction() {
+                const v0 = parseFloat(speedInput.value) || 50;
+                const angle = parseFloat(angleInput.value) || 0;
+                const h0 = parseFloat(heightInput.value) || 0;
+                const mass = Math.max(0.0001, parseFloat(massInput.value) || 0.005);
+                const sizeMm = parseFloat(sizeInput.value) || 5.5;
+                const cd = parseFloat(dragInput.value) || 0;
+                const windV = parseFloat(windInput.value) || 0;
+
+                // Use slightly larger step (0.025s) for real-time responsiveness while sliding
+                predictedPath = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.025);
+            }
+
+            // Sync Inputs
+            function bindInputs(range, input, display, decimals = 1) {
+                range.addEventListener('input', () => {
+                    input.value = range.value;
+                    if (display) display.textContent = Number(range.value).toFixed(decimals);
+                    updatePrediction();
+                });
+                input.addEventListener('input', () => {
+                    range.value = input.value;
+                    if (display) display.textContent = Number(input.value).toFixed(decimals);
+                    updatePrediction();
+                });
+            }
+
+            bindInputs(speedRange, speedInput, speedVal, 1);
+            bindInputs(angleRange, angleInput, angleVal, 1);
+            bindInputs(heightRange, heightInput, heightVal, 1);
+            bindInputs(massRange, massInput, massVal, 4);
+            bindInputs(sizeRange, sizeInput, sizeVal, 1);
+            bindInputs(dragRange, dragInput, dragVal, 2);
+            bindInputs(windRange, windInput, windVal, 1);
+
+            window.setPreset = function(type) {
+                if (type === 'vacuum') {
+                    dragRange.value = 0; dragInput.value = 0; dragVal.textContent = '0.00';
+                    windRange.value = 0; windInput.value = 0; windVal.textContent = '0.0';
+                } else if (type === 'pellet') {
+                    dragRange.value = 0.47; dragInput.value = 0.47; dragVal.textContent = '0.47';
+                    windRange.value = 5; windInput.value = 5; windVal.textContent = '5.0';
+                } else if (type === 'highDrag') {
+                    dragRange.value = 1.15; dragInput.value = 1.15; dragVal.textContent = '1.15';
+                    windRange.value = -15; windInput.value = -15; windVal.textContent = '-15.0';
+                }
+                updatePrediction();
+            };
+
+            // Initialize first prediction line
+            updatePrediction();
+
             // Fire Button Handler
             fireBtn.addEventListener('click', () => {
                 const v0 = parseFloat(speedInput.value);
                 const angle = parseFloat(angleInput.value);
                 const h0 = parseFloat(heightInput.value);
-                const mass = parseFloat(massInput.value);
+                const mass = Math.max(0.0001, parseFloat(massInput.value));
                 const sizeMm = parseFloat(sizeInput.value);
                 const cd = parseFloat(dragInput.value);
                 const windV = parseFloat(windInput.value);
@@ -742,7 +764,7 @@
                 simStatus.textContent = "Simulating...";
                 simStatus.style.color = "var(--accent)";
 
-                const result = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV);
+                const result = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.01);
                 const color = colorPalette[trialCounter % colorPalette.length];
 
                 trialCounter++;
@@ -836,6 +858,12 @@
                     if (t.range > maxDistView) maxDistView = t.range * 1.15;
                     if (t.apex > maxApexView) maxApexView = t.apex * 1.3;
                 });
+
+                // Also consider the live predicted path so the aim line fits nicely on screen
+                if (predictLineToggle.checked && predictedPath) {
+                    if (predictedPath.maxRange > maxDistView) maxDistView = predictedPath.maxRange * 1.15;
+                    if (predictedPath.maxApex > maxApexView) maxApexView = predictedPath.maxApex * 1.3;
+                }
 
                 const paddingX = 80;
                 const paddingBottom = 60;
@@ -954,6 +982,44 @@
                     ctx.setLineDash([]);
                 }
 
+                // Draw Live Aim / Predicted Trajectory Line
+                if (predictLineToggle.checked && predictedPath && predictedPath.points.length > 0) {
+                    const pPts = predictedPath.points;
+                    ctx.strokeStyle = '#0284c7';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 6]);
+                    ctx.beginPath();
+                    pPts.forEach((p, idx) => {
+                        let sx = originX + p.x * scale;
+                        let sy = originY - p.y * scale;
+                        if (idx === 0) ctx.moveTo(sx, sy);
+                        else ctx.lineTo(sx, sy);
+                    });
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Draw predicted ground landing target marker
+                    const lastPt = pPts[pPts.length - 1];
+                    let landX = originX + lastPt.x * scale;
+                    let landY = originY;
+
+                    ctx.strokeStyle = '#e11d48';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(landX, landY, 6, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(landX - 10, landY);
+                    ctx.lineTo(landX + 10, landY);
+                    ctx.stroke();
+
+                    // Predicted range label above target marker
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = 'bold 11px monospace';
+                    ctx.fillText(`Est: ${predictedPath.maxRange.toFixed(1)}m`, landX - 24, landY - 12);
+                }
+
                 // Draw Completed Trajectory Trails & Vacuum Ghosts
                 currentTrails.forEach(trail => {
                     const pts = trail.result.points;
@@ -1009,7 +1075,6 @@
                     let bx = originX + curPt.x * scale;
                     let by = originY - curPt.y * scale;
 
-                    // Calculate visual radius (minimum 3px for visibility, scaling up with diameter)
                     const diameterMm = activeFlight.data.size;
                     const visualRadius = Math.max(3, (diameterMm / 1000 / 2) * scale + 2.5);
 
