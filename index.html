@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Air Gun Physics Simulation (Interactive Stickman Sandbox)</title>
+    <title>Physics Projectile Lab (4m Ragdoll Stickman Sandbox)</title>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -124,6 +124,24 @@
             display: flex;
             gap: 0.5rem;
             align-items: center;
+        }
+
+        select {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 0.45rem 0.6rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
         }
 
         input[type="range"] {
@@ -348,7 +366,7 @@
     <header>
         <h1>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            Air Gun Physics Lab (4m Ragdoll Stickman Sandbox)
+            Physics Projectile Lab (4m Ragdoll Stickman Sandbox)
         </h1>
         <div style="display: flex; gap: 0.75rem; align-items: center;">
             <span class="badge">Gravity: 9.8 m/s²</span>
@@ -361,7 +379,21 @@
         <!-- Control Panel -->
         <div class="control-panel">
             <div class="control-section">
-                <h3>Launcher & Projectile</h3>
+                <h3>Launcher & Projectile Object</h3>
+
+                <div class="input-group">
+                    <label>Projectile Object</label>
+                    <select id="objectSelect">
+                        <option value="custom">Custom Object (Manual Settings)</option>
+                        <option value="pellet" selected>Air Pellet (5.5 mm, 0.001 kg, Cd 0.47)</option>
+                        <option value="baseball">Baseball (74 mm, 0.145 kg, Cd 0.30)</option>
+                        <option value="bowling">Bowling Ball (216 mm, 7.26 kg, Cd 0.47)</option>
+                        <option value="paper">Crumpled Paper Ball (60 mm, 0.005 kg, Cd 0.80)</option>
+                        <option value="cannonball">Iron Cannonball (150 mm, 14.0 kg, Cd 0.47)</option>
+                        <option value="arrow">Target Arrow / Dart (9 mm, 0.025 kg, Cd 0.15)</option>
+                        <option value="piano">Grand Piano (1500 mm, 350.0 kg, Cd 1.20)</option>
+                    </select>
+                </div>
                 
                 <div class="input-group">
                     <label>Launch Speed <span><output id="speedVal">50.0</output> m/s</span></label>
@@ -388,24 +420,24 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Bullet Mass (kg) <span><output id="massVal">0.0050</output> kg</span></label>
+                    <label>Object Mass (kg) <span><output id="massVal">0.0010</output> kg</span></label>
                     <div class="input-row">
-                        <input type="range" id="massRange" min="0.0001" max="40.0" step="0.001" value="0.0050">
-                        <input type="number" id="massInput" min="0.0001" max="40.0" step="0.0001" value="0.0050">
+                        <input type="range" id="massRange" min="0.0001" max="400.0" step="0.01" value="0.0010">
+                        <input type="number" id="massInput" min="0.0001" max="400.0" step="0.0001" value="0.0010">
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <label>Bullet Diameter <span><output id="sizeVal">5.5</output> mm</span></label>
+                    <label>Object Diameter <span><output id="sizeVal">5.5</output> mm</span></label>
                     <div class="input-row">
-                        <input type="range" id="sizeRange" min="1" max="100" step="0.5" value="5.5">
-                        <input type="number" id="sizeInput" min="1" max="100" step="0.5" value="5.5">
+                        <input type="range" id="sizeRange" min="1" max="2000" step="0.5" value="5.5">
+                        <input type="number" id="sizeInput" min="1" max="2000" step="0.5" value="5.5">
                     </div>
                 </div>
             </div>
 
             <div class="control-section">
-                <h3>Environment & Aerodynamics</h3>
+                <h3>Environment & Surface Physics</h3>
 
                 <div class="input-group">
                     <label>Drag Factor (Cd) <span><output id="dragVal">0.47</output></span></label>
@@ -423,6 +455,22 @@
                     </div>
                 </div>
 
+                <div class="input-group">
+                    <label>Ground Bounciness (e) <span><output id="bounceVal">0.55</output></span></label>
+                    <div class="input-row">
+                        <input type="range" id="bounceRange" min="0" max="0.95" step="0.05" value="0.55">
+                        <input type="number" id="bounceInput" min="0" max="0.95" step="0.05" value="0.55">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Rolling Friction (µ) <span><output id="frictionVal">0.25</output></span></label>
+                    <div class="input-row">
+                        <input type="range" id="frictionRange" min="0.02" max="1.0" step="0.02" value="0.25">
+                        <input type="number" id="frictionInput" min="0.02" max="1.0" step="0.02" value="0.25">
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
                     <button class="secondary" style="font-size: 0.8rem; padding: 0.4rem;" onclick="setPreset('vacuum')">Vacuum (Cd=0)</button>
                     <button class="secondary" style="font-size: 0.8rem; padding: 0.4rem;" onclick="setPreset('pellet')">Sphere (Cd=0.47)</button>
@@ -431,7 +479,7 @@
             </div>
 
             <div class="button-group">
-                <button id="fireBtn">FIRE SHOT</button>
+                <button id="fireBtn">LAUNCH OBJECT</button>
                 <button class="secondary" id="clearBtn">Clear Trails</button>
             </div>
             
@@ -453,7 +501,7 @@
         <div class="viewport-area">
             <div class="telemetry-bar">
                 <div class="telemetry-item">
-                    <span class="label">Distance (Range)</span>
+                    <span class="label">Distance (Total)</span>
                     <span class="value" id="telemRange">0.00 m</span>
                 </div>
                 <div class="telemetry-item">
@@ -461,7 +509,7 @@
                     <span class="value" id="telemApex">0.00 m</span>
                 </div>
                 <div class="telemetry-item">
-                    <span class="label">Flight Time</span>
+                    <span class="label">Elapsed Time</span>
                     <span class="value" id="telemTime">0.00 s</span>
                 </div>
                 <div class="telemetry-item">
@@ -469,13 +517,13 @@
                     <span class="value" id="telemSpeed">0.00 m/s</span>
                 </div>
                 <div class="telemetry-item">
-                    <span class="label">Mach Number</span>
-                    <span class="value" id="telemMach">0.00 M</span>
+                    <span class="label">State</span>
+                    <span class="value" id="telemState">Ready</span>
                 </div>
             </div>
 
             <div class="canvas-container">
-                <div class="zoom-hint"><b>Click & Drag</b> on canvas to spawn 4m Stickman &bull; Scroll to Zoom &bull; Drag background to Pan</div>
+                <div class="zoom-hint"><b>Click</b> on floor to spawn upright 4m Stickman directly underneath &bull; Scroll to Zoom &bull; Drag to Pan</div>
                 <canvas id="simCanvas"></canvas>
             </div>
 
@@ -492,16 +540,14 @@
                         <thead>
                             <tr>
                                 <th>Trial</th>
+                                <th>Object</th>
                                 <th>Speed (m/s)</th>
                                 <th>Angle (°)</th>
-                                <th>Height (m)</th>
                                 <th>Mass (kg)</th>
-                                <th>Size (mm)</th>
-                                <th>Drag (Cd)</th>
-                                <th>Wind (m/s)</th>
-                                <th>Range (m)</th>
+                                <th>First Impact (m)</th>
+                                <th>Final Stop (m)</th>
                                 <th>Apex (m)</th>
-                                <th>Time (s)</th>
+                                <th>Total Time (s)</th>
                             </tr>
                         </thead>
                         <tbody id="logBody">
@@ -518,6 +564,7 @@
             const canvas = document.getElementById('simCanvas');
             const ctx = canvas.getContext('2d');
 
+            const objectSelect = document.getElementById('objectSelect');
             const speedRange = document.getElementById('speedRange');
             const speedInput = document.getElementById('speedInput');
             const speedVal = document.getElementById('speedVal');
@@ -546,6 +593,14 @@
             const windInput = document.getElementById('windInput');
             const windVal = document.getElementById('windVal');
 
+            const bounceRange = document.getElementById('bounceRange');
+            const bounceInput = document.getElementById('bounceInput');
+            const bounceVal = document.getElementById('bounceVal');
+
+            const frictionRange = document.getElementById('frictionRange');
+            const frictionInput = document.getElementById('frictionInput');
+            const frictionVal = document.getElementById('frictionVal');
+
             const fireBtn = document.getElementById('fireBtn');
             const clearBtn = document.getElementById('clearBtn');
             const simStatus = document.getElementById('simStatus');
@@ -557,7 +612,7 @@
             const telemApex = document.getElementById('telemApex');
             const telemTime = document.getElementById('telemTime');
             const telemSpeed = document.getElementById('telemSpeed');
-            const telemMach = document.getElementById('telemMach');
+            const telemState = document.getElementById('telemState');
             const logBody = document.getElementById('logBody');
 
             const g = 9.8;
@@ -572,15 +627,48 @@
             let userPanX = 0;
             let userPanY = 0;
             let isDragging = false;
-            let startMouseX = 0;
-            let startMouseY = 0;
+            let downMouseX = 0;
+            let downMouseY = 0;
+            let lastMouseX = 0;
+            let lastMouseY = 0;
 
-            // Stickmen array (4-meter tall ragdolls)
             let stickmen = [];
+
+            let lastWorldScale = 5.0;
+            let lastOriginX = 80;
+            let lastOriginY = 390;
+
+            const objectPresets = {
+                pellet: { name: "Air Pellet", mass: 0.0010, size: 5.5, cd: 0.47, bounce: 0.45, friction: 0.25, color: "#0f172a", shape: "sphere" },
+                baseball: { name: "Baseball", mass: 0.1450, size: 74.0, cd: 0.30, bounce: 0.55, friction: 0.22, color: "#dc2626", shape: "baseball" },
+                bowling: { name: "Bowling Ball", mass: 7.2600, size: 216.0, cd: 0.47, bounce: 0.35, friction: 0.08, color: "#1e293b", shape: "bowling" },
+                paper: { name: "Paper Ball", mass: 0.0050, size: 60.0, cd: 0.80, bounce: 0.20, friction: 0.55, color: "#cbd5e1", shape: "paper" },
+                cannonball: { name: "Cannonball", mass: 14.0000, size: 150.0, cd: 0.47, bounce: 0.30, friction: 0.20, color: "#334155", shape: "sphere" },
+                arrow: { name: "Target Arrow", mass: 0.0250, size: 9.0, cd: 0.15, bounce: 0.15, friction: 0.65, color: "#d97706", shape: "arrow" },
+                piano: { name: "Grand Piano", mass: 350.0000, size: 1500.0, cd: 1.20, bounce: 0.12, friction: 0.70, color: "#090d16", shape: "piano" },
+                custom: { name: "Custom Object", mass: 0.0050, size: 5.5, cd: 0.47, bounce: 0.55, friction: 0.25, color: "#0284c7", shape: "sphere" }
+            };
 
             const colorPalette = [
                 '#0284c7', '#e11d48', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#0d9488'
             ];
+
+            objectSelect.addEventListener('change', () => {
+                const selected = objectSelect.value;
+                if (selected !== 'custom' && objectPresets[selected]) {
+                    const p = objectPresets[selected];
+                    massRange.value = p.mass; massInput.value = p.mass; massVal.textContent = Number(p.mass).toFixed(4);
+                    sizeRange.value = p.size; sizeInput.value = p.size; sizeVal.textContent = Number(p.size).toFixed(1);
+                    dragRange.value = p.cd; dragInput.value = p.cd; dragVal.textContent = Number(p.cd).toFixed(2);
+                    bounceRange.value = p.bounce; bounceInput.value = p.bounce; bounceVal.textContent = Number(p.bounce).toFixed(2);
+                    frictionRange.value = p.friction; frictionInput.value = p.friction; frictionVal.textContent = Number(p.friction).toFixed(2);
+                    updatePrediction();
+                }
+            });
+
+            function markCustom() {
+                objectSelect.value = 'custom';
+            }
 
             function resizeCanvas() {
                 const container = canvas.parentElement;
@@ -594,57 +682,32 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Interactive Pointer Pan & Stickman Spawn on Click-Drag
             canvas.addEventListener('mousedown', (e) => {
                 isDragging = true;
-                startMouseX = e.clientX;
-                startMouseY = e.clientY;
+                downMouseX = e.clientX;
+                downMouseY = e.clientY;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
             });
 
             window.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                const dx = e.clientX - startMouseX;
-                const dy = e.clientY - startMouseY;
-                startMouseX = e.clientX;
-                startMouseY = e.clientY;
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
                 userPanX += dx;
                 userPanY += dy;
             });
 
             canvas.addEventListener('mouseup', (e) => {
-                // If it was a quick click/drag with minimal movement, spawn a 4-meter stickman at world coordinates!
-                const dx = Math.abs(e.clientX - startMouseX);
-                const dy = Math.abs(e.clientY - startMouseY);
-                if (dx < 5 && dy < 5) {
+                const totalDx = Math.abs(e.clientX - downMouseX);
+                const totalDy = Math.abs(e.clientY - downMouseY);
+                if (totalDx < 5 && totalDy < 5) {
                     const rect = canvas.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
-                    const clickY = e.clientY - rect.top;
-
-                    // Convert screen to world meters
-                    const width = canvas.parentElement.clientWidth || 800;
-                    const height = canvas.parentElement.clientHeight || 450;
-                    const paddingX = 80;
-                    const paddingBottom = 60;
-                    let maxDistView = 100;
-                    let maxApexView = 50;
-                    currentTrails.forEach(t => {
-                        if (t.range > maxDistView) maxDistView = t.range * 1.15;
-                        if (t.apex > maxApexView) maxApexView = t.apex * 1.3;
-                    });
-                    const renderWidth = Math.max(100, width - paddingX - 40);
-                    const renderHeight = Math.max(100, height - paddingBottom - 40);
-                    let baseScaleX = renderWidth / maxDistView;
-                    let baseScaleY = renderHeight / maxApexView;
-                    let scale = Math.min(baseScaleX, baseScaleY) * userZoom;
-                    let originX = paddingX + userPanX;
-                    let originY = (height - paddingBottom) + userPanY;
-
-                    const worldX = (clickX - originX) / scale;
-                    const worldY = (originY - clickY) / scale;
-
-                    if (worldY >= 0) {
-                        spawnStickman(worldX, worldY);
-                    }
+                    const worldX = (clickX - lastOriginX) / lastWorldScale;
+                    spawnStickman(worldX);
                 }
                 isDragging = false;
             });
@@ -679,30 +742,27 @@
                 stickmen = [];
             };
 
-            // 4-Meter Tall Ragdoll Stickman Constructor & Physics
-            function spawnStickman(x, y) {
-                // 4 meters tall total height
-                // Joints: head, neck, torso, pelvis, leftHand, rightHand, leftFoot, rightFoot
+            function spawnStickman(x) {
                 const stickman = {
-                    mass: 90.0, // 90 kg human adult
+                    standing: true,
                     parts: {
-                        head: {x: x, y: y + 3.6, vx: 0, vy: 0, m: 10},
-                        neck: {x: x, y: y + 3.0, vx: 0, vy: 0, m: 15},
-                        torso: {x: x, y: y + 2.0, vx: 0, vy: 0, m: 40},
-                        pelvis: {x: x, y: y + 1.2, vx: 0, vy: 0, m: 20},
-                        leftHand: {x: x - 0.8, y: y + 2.2, vx: 0, vy: 0, m: 5},
-                        rightHand: {x: x + 0.8, y: y + 2.2, vx: 0, vy: 0, m: 5},
-                        leftFoot: {x: x - 0.4, y: y, vx: 0, vy: 0, m: 5},
-                        rightFoot: {x: x + 0.4, y: y, vx: 0, vy: 0, m: 5}
+                        head: {x: x, y: 4.0, prevX: x, prevY: 4.0},
+                        neck: {x: x, y: 3.3, prevX: x, prevY: 3.3},
+                        torso: {x: x, y: 2.2, prevX: x, prevY: 2.2},
+                        pelvis: {x: x, y: 1.3, prevX: x, prevY: 1.3},
+                        leftHand: {x: x - 0.7, y: 2.4, prevX: x - 0.7, prevY: 2.4},
+                        rightHand: {x: x + 0.7, y: 2.4, prevX: x + 0.7, prevY: 2.4},
+                        leftFoot: {x: x - 0.3, y: 0.0, prevX: x - 0.3, prevY: 0.0},
+                        rightFoot: {x: x + 0.3, y: 0.0, prevX: x + 0.3, prevY: 0.0}
                     },
                     bones: [
-                        ['head', 'neck', 0.6],
-                        ['neck', 'torso', 1.0],
-                        ['torso', 'pelvis', 0.8],
-                        ['neck', 'leftHand', 1.1],
-                        ['neck', 'rightHand', 1.1],
-                        ['pelvis', 'leftFoot', 1.2],
-                        ['pelvis', 'rightFoot', 1.2]
+                        ['head', 'neck', 0.7],
+                        ['neck', 'torso', 1.1],
+                        ['torso', 'pelvis', 0.9],
+                        ['neck', 'leftHand', 1.0],
+                        ['neck', 'rightHand', 1.0],
+                        ['pelvis', 'leftFoot', 1.3],
+                        ['pelvis', 'rightFoot', 1.3]
                     ]
                 };
                 stickmen.push(stickman);
@@ -710,33 +770,33 @@
 
             function updateStickmen(dt) {
                 stickmen.forEach(sm => {
+                    if (sm.standing) return;
+
                     const keys = Object.keys(sm.parts);
                     keys.forEach(k => {
                         let p = sm.parts[k];
-                        // Apply gravity & air drag
-                        p.vy -= 9.8 * dt;
-                        p.vx *= 0.99;
-                        p.vy *= 0.99;
-                        p.x += p.vx * dt;
-                        p.y += p.vy * dt;
+                        let vx = (p.x - p.prevX) * 0.99;
+                        let vy = (p.y - p.prevY) * 0.99 - 9.8 * dt * dt;
+                        p.prevX = p.x;
+                        p.prevY = p.y;
+                        p.x += vx;
+                        p.y += vy;
 
-                        // Ground collision (y = 0)
                         if (p.y < 0) {
                             p.y = 0;
-                            p.vy = -p.vy * 0.3; // bounce damping
-                            p.vx *= 0.7; // ground friction
+                            let groundVx = (p.x - p.prevX) * 0.6;
+                            p.prevX = p.x - groundVx;
                         }
                     });
 
-                    // Distance constraint satisfaction (Verlet / structural rigidity)
-                    for (let iter = 0; iter < 3; iter++) {
+                    for (let iter = 0; iter < 6; iter++) {
                         sm.bones.forEach(bone => {
                             let p1 = sm.parts[bone[0]];
                             let p2 = sm.parts[bone[1]];
                             let targetDist = bone[2];
                             let dx = p2.x - p1.x;
                             let dy = p2.y - p1.y;
-                            let dist = Math.sqrt(dx*dx + dy*dy);
+                            let dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist > 0.0001) {
                                 let diff = (dist - targetDist) / dist;
                                 let correctionX = dx * 0.5 * diff;
@@ -752,113 +812,156 @@
             }
 
             function checkBulletCollisions(bulletX, bulletY, bulletVx, bulletVy, bulletMass, bulletDiameterMm) {
-                const bulletRadiusM = (bulletDiameterMm / 1000) / 2;
+                const speed = Math.sqrt(bulletVx * bulletVx + bulletVy * bulletVy);
+                if (speed < 0.5) return;
+                const hitRadius = Math.max(0.7, (bulletDiameterMm / 1000 / 2) + 0.55);
                 stickmen.forEach(sm => {
+                    let hit = false;
                     Object.keys(sm.parts).forEach(partKey => {
                         let p = sm.parts[partKey];
                         let dx = p.x - bulletX;
                         let dy = p.y - bulletY;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-                        // If bullet hits near any body part (within 0.5 meters)
-                        if (dist < 0.6) {
-                            // Momentum transfer (realistic physics impulse: F = dp/dt)
-                            let impulse = bulletMass * 15.0; 
-                            p.vx += (bulletVx / Math.max(1, Math.abs(bulletVx))) * impulse * 1.5;
-                            p.vy += Math.max(2.0, bulletVy * 0.25 + 3.0);
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < hitRadius) {
+                            hit = true;
+                            sm.standing = false;
+                            let momentumFactor = Math.min(2.5, Math.max(0.25, (bulletMass * speed) * 0.15));
+                            p.prevX -= (bulletVx / Math.max(1, speed)) * momentumFactor;
+                            p.prevY -= Math.max(0.15, (bulletVy / Math.max(1, speed)) * momentumFactor * 0.5 + 0.2);
                         }
                     });
+                    if (hit) {
+                        let bodyPush = Math.min(1.2, Math.max(0.08, (bulletMass * speed) * 0.05));
+                        Object.keys(sm.parts).forEach(partKey => {
+                            let p = sm.parts[partKey];
+                            p.prevX -= (bulletVx / Math.max(1, speed)) * bodyPush;
+                            p.prevY -= 0.08;
+                        });
+                    }
                 });
             }
 
-            function computeTrajectory(v0, angleDeg, h0, mass, diameterMm, cd, windV, stepSize = 0.01) {
+            function computeTrajectory(v0, angleDeg, h0, mass, diameterMm, cd, windV, restitution, rollingMu, stepSize = 0.01) {
                 const angleRad = angleDeg * Math.PI / 180;
                 let x = 0;
                 let y = h0;
                 let vx = v0 * Math.cos(angleRad);
                 let vy = v0 * Math.sin(angleRad);
+                let spinAngle = 0;
 
-                const radiusM = (diameterMm / 1000) / 2;
+                const radiusM = Math.max(0.002, (diameterMm / 1000) / 2);
                 const area = Math.PI * radiusM * radiusM;
                 const kAerodynamic = 0.5 * rho * cd * area;
 
-                const points = [{x, y, vx, vy, t: 0}];
+                const points = [{x, y, vx, vy, t: 0, state: "Airborne", spin: 0}];
                 let dt = stepSize;
                 let t = 0;
                 let maxH = h0;
-                let maxR = 0;
-                let impactV = v0;
-
-                const vacuumPoints = [];
-                let discriminant = vy * vy + 2 * g * h0;
-                let tFlightVac = discriminant >= 0 ? (vy + Math.sqrt(discriminant)) / g : 0;
-                for (let tv = 0; tv <= tFlightVac + 0.01; tv += 0.05) {
-                    let xv = v0 * Math.cos(angleRad) * tv;
-                    let yv = h0 + v0 * Math.sin(angleRad) * tv - 0.5 * g * tv * tv;
-                    if (yv < 0) yv = 0;
-                    vacuumPoints.push({x: xv, y: yv});
-                }
+                let firstImpactX = null;
+                let state = "Airborne";
+                let bounceCount = 0;
 
                 let steps = 0;
-                const maxSteps = 35000;
+                const maxSteps = 45000;
 
-                while (y >= 0 && steps < maxSteps) {
+                while (steps < maxSteps) {
                     steps++;
-                    function getAccels(px, py, pvx, pvy) {
-                        const relVx = pvx - windV;
-                        const relVy = pvy;
-                        const vRel = Math.sqrt(relVx * relVx + relVy * relVy);
-                        const dragForceFactor = (kAerodynamic / mass) * vRel;
-                        const ax = -dragForceFactor * relVx;
-                        const ay = -g - dragForceFactor * relVy;
-                        return {ax, ay};
-                    }
 
-                    let a1 = getAccels(x, y, vx, vy);
-                    let k1x = vx, l1x = a1.ax;
-                    let k1y = vy, l1y = a1.ay;
+                    if (state === "Airborne") {
+                        function getAccels(px, py, pvx, pvy) {
+                            const relVx = pvx - windV;
+                            const relVy = pvy;
+                            const vRel = Math.sqrt(relVx * relVx + relVy * relVy);
+                            const dragForceFactor = (kAerodynamic / mass) * vRel;
+                            const ax = -dragForceFactor * relVx;
+                            const ay = -g - dragForceFactor * relVy;
+                            return {ax, ay};
+                        }
 
-                    let a2 = getAccels(x + 0.5*dt*k1x, y + 0.5*dt*k1y, vx + 0.5*dt*l1x, vy + 0.5*dt*l1y);
-                    let k2x = vx + 0.5*dt*l1x, l2x = a2.ax;
-                    let k2y = vy + 0.5*dt*l1y, l2y = a2.ay;
+                        let a1 = getAccels(x, y, vx, vy);
+                        let k1x = vx, l1x = a1.ax;
+                        let k1y = vy, l1y = a1.ay;
 
-                    let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l2y);
-                    let k3x = vx + 0.5*dt*l2x, l3x = a3.ax;
-                    let k3y = vy + 0.5*dt*l2y, l3y = a3.ay;
+                        let a2 = getAccels(x + 0.5*dt*k1x, y + 0.5*dt*k1y, vx + 0.5*dt*l1x, vy + 0.5*dt*l1y);
+                        let k2x = vx + 0.5*dt*l1x, l2x = a2.ax;
+                        let k2y = vy + 0.5*dt*l1y, l2y = a2.ay;
 
-                    let a4 = getAccels(x + dt*k3x, y + dt*k3y, vx + dt*l3x, vy + dt*l3y);
-                    let k4x = vx + dt*l3x, l4x = a4.ax;
-                    let k4y = vy + dt*l3y, l4y = a4.ay;
+                        let a3 = getAccels(x + 0.5*dt*k2x, y + 0.5*dt*k2y, vx + 0.5*dt*l2x, vy + 0.5*dt*l2y);
+                        let k3x = vx + 0.5*dt*l2x, l3x = a3.ax;
+                        let k3y = vy + 0.5*dt*l2y, l3y = a3.ay;
 
-                    x += (dt / 6) * (k1x + 2*k2x + 2*k3x + k4x);
-                    y += (dt / 6) * (k1y + 2*k2y + 2*k3y + k4y);
-                    vx += (dt / 6) * (l1x + 2*l2x + 2*l3x + l4x);
-                    vy += (dt / 6) * (l1y + 2*l2y + 2*l3y + l4y);
-                    t += dt;
+                        let a4 = getAccels(x + dt*k3x, y + dt*k3y, vx + dt*l3x, vy + dt*l3y);
+                        let k4x = vx + dt*l3x, l4x = a4.ax;
+                        let k4y = vy + dt*l3y, l4y = a4.ay;
 
-                    if (y > maxH) maxH = y;
-                    if (x > maxR) maxR = x;
+                        x += (dt / 6) * (k1x + 2*k2x + 2*k3x + k4x);
+                        y += (dt / 6) * (k1y + 2*k2y + 2*k3y + k4y);
+                        vx += (dt / 6) * (l1x + 2*l2x + 2*l3x + l4x);
+                        vy += (dt / 6) * (l1y + 2*l2y + 2*l3y + l4y);
+                        t += dt;
+                        spinAngle += (vx / Math.max(0.05, radiusM)) * dt * 0.25;
 
-                    points.push({x, y, vx, vy, t});
+                        if (y > maxH) maxH = y;
 
-                    if (y <= 0) {
-                        const prev = points[points.length - 2];
-                        const frac = -prev.y / (y - prev.y);
-                        x = prev.x + frac * (x - prev.x);
+                        if (y <= 0 && vy < 0) {
+                            const prev = points[points.length - 1];
+                            const frac = prev.y > 0 ? prev.y / (prev.y - y) : 0;
+                            x = prev.x + frac * (x - prev.x);
+                            y = 0;
+
+                            if (firstImpactX === null) {
+                                firstImpactX = x;
+                            }
+
+                            const impactVy = Math.abs(vy);
+                            if (impactVy * restitution > 0.65 && restitution > 0.01 && bounceCount < 18) {
+                                bounceCount++;
+                                vy = impactVy * restitution;
+                                const frictionLoss = Math.min(Math.abs(vx), rollingMu * impactVy * (1 + restitution) * 0.35);
+                                vx -= Math.sign(vx) * frictionLoss;
+                                points.push({x, y, vx, vy, t, state: "Bouncing", spin: spinAngle});
+                            } else {
+                                vy = 0;
+                                y = 0;
+                                state = "Rolling";
+                                points.push({x, y, vx, vy, t, state: "Rolling", spin: spinAngle});
+                            }
+                        } else {
+                            points.push({x, y, vx, vy, t, state: bounceCount > 0 ? "Bouncing" : "Airborne", spin: spinAngle});
+                        }
+                    } else if (state === "Rolling") {
+                        const relVx = vx - windV;
+                        const dragAccelX = -((kAerodynamic / mass) * Math.abs(relVx) * relVx);
+                        const frictionAccelX = Math.abs(vx) > 0.001 ? -Math.sign(vx) * rollingMu * g : 0;
+                        const totalAx = dragAccelX + frictionAccelX;
+
+                        const nextVx = vx + totalAx * dt;
+                        if ((vx * nextVx <= 0 && Math.abs(dragAccelX) <= rollingMu * g) || Math.abs(nextVx) < 0.03) {
+                            vx = 0;
+                            vy = 0;
+                            y = 0;
+                            t += dt;
+                            points.push({x, y, vx: 0, vy: 0, t, state: "Stopped", spin: spinAngle});
+                            break;
+                        }
+
+                        vx = nextVx;
+                        x += vx * dt;
                         y = 0;
-                        t = prev.t + frac * dt;
-                        impactV = Math.sqrt(vx*vx + vy*vy);
-                        points[points.length - 1] = {x, y, vx, vy, t};
-                        break;
+                        t += dt;
+                        spinAngle += (vx / Math.max(0.05, radiusM)) * dt;
+                        points.push({x, y, vx, vy: 0, t, state: "Rolling", spin: spinAngle});
                     }
                 }
+
+                if (firstImpactX === null) firstImpactX = x;
 
                 return {
                     points,
-                    vacuumPoints,
+                    firstImpact: firstImpactX,
                     maxRange: x,
                     maxApex: maxH,
-                    flightTime: t,
-                    impactSpeed: impactV
+                    flightTime: t
                 };
             }
 
@@ -866,36 +969,43 @@
                 const v0 = parseFloat(speedInput.value) || 50;
                 const angle = parseFloat(angleInput.value) || 0;
                 const h0 = parseFloat(heightInput.value) || 0;
-                const mass = Math.max(0.0001, parseFloat(massInput.value) || 0.005);
+                const mass = Math.max(0.0001, parseFloat(massInput.value) || 0.001);
                 const sizeMm = parseFloat(sizeInput.value) || 5.5;
                 const cd = parseFloat(dragInput.value) || 0;
                 const windV = parseFloat(windInput.value) || 0;
+                const bounce = parseFloat(bounceInput.value) ?? 0.55;
+                const friction = parseFloat(frictionInput.value) || 0.25;
 
-                predictedPath = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.03);
+                predictedPath = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, bounce, friction, 0.02);
             }
 
-            function bindInputs(range, input, display, decimals = 1) {
+            function bindInputs(range, input, display, decimals = 1, triggersCustom = false) {
                 range.addEventListener('input', () => {
                     input.value = range.value;
                     if (display) display.textContent = Number(range.value).toFixed(decimals);
+                    if (triggersCustom) markCustom();
                     updatePrediction();
                 });
                 input.addEventListener('input', () => {
                     range.value = input.value;
                     if (display) display.textContent = Number(input.value).toFixed(decimals);
+                    if (triggersCustom) markCustom();
                     updatePrediction();
                 });
             }
 
-            bindInputs(speedRange, speedInput, speedVal, 1);
-            bindInputs(angleRange, angleInput, angleVal, 1);
-            bindInputs(heightRange, heightInput, heightVal, 1);
-            bindInputs(massRange, massInput, massVal, 4);
-            bindInputs(sizeRange, sizeInput, sizeVal, 1);
-            bindInputs(dragRange, dragInput, dragVal, 2);
-            bindInputs(windRange, windInput, windVal, 1);
+            bindInputs(speedRange, speedInput, speedVal, 1, false);
+            bindInputs(angleRange, angleInput, angleVal, 1, false);
+            bindInputs(heightRange, heightInput, heightVal, 1, false);
+            bindInputs(massRange, massInput, massVal, 4, true);
+            bindInputs(sizeRange, sizeInput, sizeVal, 1, true);
+            bindInputs(dragRange, dragInput, dragVal, 2, true);
+            bindInputs(windRange, windInput, windVal, 1, false);
+            bindInputs(bounceRange, bounceInput, bounceVal, 2, false);
+            bindInputs(frictionRange, frictionInput, frictionVal, 2, false);
 
             window.setPreset = function(type) {
+                markCustom();
                 if (type === 'vacuum') {
                     dragRange.value = 0; dragInput.value = 0; dragVal.textContent = '0.00';
                     windRange.value = 0; windInput.value = 0; windVal.textContent = '0.0';
@@ -919,16 +1029,24 @@
                 const sizeMm = parseFloat(sizeInput.value);
                 const cd = parseFloat(dragInput.value);
                 const windV = parseFloat(windInput.value);
+                const bounce = parseFloat(bounceInput.value);
+                const friction = parseFloat(frictionInput.value);
+
+                const objKey = objectSelect.value;
+                const objInfo = objectPresets[objKey] || objectPresets.custom;
 
                 simStatus.textContent = "Simulating...";
                 simStatus.style.color = "var(--accent)";
 
-                const result = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, 0.01);
+                const result = computeTrajectory(v0, angle, h0, mass, sizeMm, cd, windV, bounce, friction, 0.01);
                 const color = colorPalette[trialCounter % colorPalette.length];
 
                 trialCounter++;
                 const trialData = {
                     id: trialCounter,
+                    objectName: objInfo.name,
+                    objectShape: objInfo.shape,
+                    objectColor: objInfo.color,
                     speed: v0,
                     angle: angle,
                     height: h0,
@@ -936,6 +1054,7 @@
                     size: sizeMm,
                     drag: cd,
                     wind: windV,
+                    firstImpact: result.firstImpact,
                     range: result.maxRange,
                     apex: result.maxApex,
                     time: result.flightTime,
@@ -957,6 +1076,7 @@
                 currentTrails = [];
                 activeFlight = null;
                 simStatus.textContent = "Cleared";
+                telemState.textContent = "Ready";
                 setTimeout(() => simStatus.textContent = "Ready", 1500);
             });
 
@@ -970,15 +1090,15 @@
                     alert("No experimental data to export!");
                     return;
                 }
-                let csv = "Trial,Speed(m/s),Angle(deg),Height(m),Mass(kg),Diameter(mm),Drag(Cd),Wind(m/s),Range(m),Apex(m),Time(s)\n";
+                let csv = "Trial,Object,Speed(m/s),Angle(deg),Mass(kg),FirstImpact(m),FinalStop(m),Apex(m),TotalTime(s)\n";
                 trials.forEach(t => {
-                    csv += `${t.id},${t.speed},${t.angle},${t.height},${t.mass},${t.size},${t.drag},${t.wind},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}\n`;
+                    csv += `${t.id},"${t.objectName}",${t.speed},${t.angle},${t.mass},${t.firstImpact.toFixed(2)},${t.range.toFixed(2)},${t.apex.toFixed(2)},${t.time.toFixed(2)}\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `air_gun_simulation_data_${Date.now()}.csv`;
+                a.download = `physics_ballistics_data_${Date.now()}.csv`;
                 a.click();
             };
 
@@ -988,19 +1108,92 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><span class="color-dot" style="background:${t.color}"></span>#${t.id}</td>
+                        <td>${t.objectName}</td>
                         <td>${t.speed.toFixed(1)}</td>
                         <td>${t.angle.toFixed(1)}</td>
-                        <td>${t.height.toFixed(1)}</td>
                         <td>${t.mass.toFixed(4)}</td>
-                        <td>${t.size.toFixed(1)}</td>
-                        <td>${t.drag.toFixed(2)}</td>
-                        <td>${t.wind.toFixed(1)}</td>
+                        <td>${t.firstImpact.toFixed(2)}</td>
                         <td>${t.range.toFixed(2)}</td>
                         <td>${t.apex.toFixed(2)}</td>
                         <td>${t.time.toFixed(2)}</td>
                     `;
                     logBody.appendChild(tr);
                 });
+            }
+
+            function drawProjectileObject(bx, by, curPt, data, scale) {
+                const diameterMm = data.size;
+                const visualRadius = Math.max(5, (diameterMm / 1000 / 2) * scale + 3);
+                const shape = data.objectShape;
+                const drawY = curPt.y <= 0.001 ? by - visualRadius + 1 : by;
+
+                ctx.save();
+                ctx.translate(bx, drawY);
+                const flightAngle = Math.atan2(-curPt.vy, curPt.vx);
+
+                if (shape === 'baseball') {
+                    ctx.rotate(curPt.spin);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, visualRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#dc2626';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, visualRadius * 0.65, -0.6, 0.6);
+                    ctx.stroke();
+                } else if (shape === 'bowling') {
+                    ctx.rotate(curPt.spin);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, visualRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.beginPath();
+                    ctx.arc(-visualRadius * 0.3, -visualRadius * 0.3, Math.max(1.5, visualRadius * 0.15), 0, Math.PI * 2);
+                    ctx.arc(visualRadius * 0.1, -visualRadius * 0.4, Math.max(1.5, visualRadius * 0.15), 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (shape === 'arrow') {
+                    ctx.rotate(curPt.state === "Rolling" || curPt.state === "Stopped" ? 0 : flightAngle);
+                    const len = Math.max(22, visualRadius * 4);
+                    ctx.strokeStyle = '#92400e';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-len * 0.5, 0);
+                    ctx.lineTo(len * 0.5, 0);
+                    ctx.stroke();
+                    ctx.fillStyle = '#475569';
+                    ctx.beginPath();
+                    ctx.moveTo(len * 0.5 + 5, 0);
+                    ctx.lineTo(len * 0.5 - 4, -4);
+                    ctx.lineTo(len * 0.5 - 4, 4);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (shape === 'piano') {
+                    ctx.rotate(curPt.state === "Rolling" || curPt.state === "Stopped" ? 0 : flightAngle * 0.25);
+                    const w = Math.max(18, visualRadius * 1.8);
+                    const h = Math.max(12, visualRadius * 1.2);
+                    ctx.fillStyle = '#090d16';
+                    ctx.fillRect(-w / 2, -h / 2, w, h);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(-w / 2 + 2, h / 2 - 4, w - 4, 3);
+                } else {
+                    ctx.rotate(curPt.spin);
+                    ctx.fillStyle = data.objectColor || '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, visualRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = data.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(visualRadius * 0.45, 0, Math.max(1.2, visualRadius * 0.2), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
             }
 
             function animate() {
@@ -1014,7 +1207,6 @@
 
                 ctx.clearRect(0, 0, width, height);
 
-                // Update stickmen ragdoll physics
                 updateStickmen(0.016);
 
                 let maxDistView = 100;
@@ -1047,7 +1239,7 @@
                     activeFlight.currentIndex += 3;
                     if (activeFlight.currentIndex >= pts.length) {
                         activeFlight.currentIndex = pts.length - 1;
-                        simStatus.textContent = "Shot Completed";
+                        simStatus.textContent = "Resting on Floor";
                         simStatus.style.color = "var(--success)";
                     }
 
@@ -1055,7 +1247,6 @@
                     const bulletX = currentPt.x;
                     const bulletY = currentPt.y;
 
-                    // Check bullet collision with 4m stickmen!
                     checkBulletCollisions(bulletX, bulletY, currentPt.vx, currentPt.vy, activeFlight.data.mass, activeFlight.data.size);
 
                     const curSpeed = Math.sqrt(currentPt.vx * currentPt.vx + currentPt.vy * currentPt.vy);
@@ -1063,13 +1254,17 @@
                     telemApex.textContent = activeFlight.data.result.maxApex.toFixed(2) + " m";
                     telemTime.textContent = currentPt.t.toFixed(2) + " s";
                     telemSpeed.textContent = curSpeed.toFixed(1) + " m/s";
-                    telemMach.textContent = (curSpeed / 343).toFixed(2) + " M";
+                    telemState.textContent = currentPt.state;
 
                     if (followCamToggle.checked && activeFlight.currentIndex < pts.length - 1) {
                         const targetOffsetX = width / 3 - bulletX * scale;
                         originX = paddingX + targetOffsetX + userPanX;
                     }
                 }
+
+                lastWorldScale = scale;
+                lastOriginX = originX;
+                lastOriginY = originY;
 
                 ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
                 ctx.lineWidth = 1;
@@ -1121,7 +1316,6 @@
                 ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
                 ctx.fillRect(paddingX - 20, originY, width - paddingX + 20, height - originY);
 
-                // Draw 4m Stickmen Ragdolls
                 stickmen.forEach(sm => {
                     ctx.strokeStyle = '#0f172a';
                     ctx.lineWidth = 3.5;
@@ -1133,7 +1327,6 @@
                         ctx.lineTo(originX + p2.x * scale, originY - p2.y * scale);
                         ctx.stroke();
                     });
-                    // Draw head circle
                     let head = sm.parts.head;
                     ctx.fillStyle = '#0f172a';
                     ctx.beginPath();
@@ -1156,6 +1349,13 @@
                     ctx.stroke();
                     ctx.setLineDash([]);
 
+                    let impactX = originX + predictedPath.firstImpact * scale;
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(impactX, originY, 4, 0, Math.PI * 2);
+                    ctx.stroke();
+
                     const lastPt = pPts[pPts.length - 1];
                     let landX = originX + lastPt.x * scale;
                     let landY = originY;
@@ -1173,7 +1373,7 @@
 
                     ctx.fillStyle = '#0f172a';
                     ctx.font = 'bold 11px monospace';
-                    ctx.fillText(`Est: ${predictedPath.maxRange.toFixed(1)}m`, landX - 24, landY - 12);
+                    ctx.fillText(`Stop: ${predictedPath.maxRange.toFixed(1)}m`, landX - 28, landY - 12);
                 }
 
                 currentTrails.forEach(trail => {
@@ -1211,16 +1411,7 @@
                     let bx = originX + curPt.x * scale;
                     let by = originY - curPt.y * scale;
 
-                    const diameterMm = activeFlight.data.size;
-                    const visualRadius = Math.max(4, (diameterMm / 1000 / 2) * scale + 3);
-
-                    ctx.fillStyle = '#0f172a';
-                    ctx.beginPath();
-                    ctx.arc(bx, by, visualRadius, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = activeFlight.data.color;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
+                    drawProjectileObject(bx, by, curPt, activeFlight.data, scale);
 
                     const vScale = 0.3;
                     ctx.strokeStyle = '#d97706';
