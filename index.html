@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Air Gun Physics Simulation (4m Ragdoll Stickman Sandbox)</title>
+    <title>Air Gun Physics Simulation (Interactive Stickman Sandbox)</title>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -475,7 +475,7 @@
             </div>
 
             <div class="canvas-container">
-                <div class="zoom-hint"><b>Click & Drag</b> on canvas to spawn upright 4m Stickman &bull; Scroll to Zoom &bull; Drag background to Pan</div>
+                <div class="zoom-hint"><b>Click & Drag</b> on canvas to spawn 4m Stickman &bull; Scroll to Zoom &bull; Drag background to Pan</div>
                 <canvas id="simCanvas"></canvas>
             </div>
 
@@ -575,12 +575,8 @@
             let startMouseX = 0;
             let startMouseY = 0;
 
+            // Stickmen array (4-meter tall ragdolls)
             let stickmen = [];
-
-            // Global viewport state shared between renderer and click handler
-            let lastWorldScale = 5.0;
-            let lastOriginX = 80;
-            let lastOriginY = 390;
 
             const colorPalette = [
                 '#0284c7', '#e11d48', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#0d9488'
@@ -598,6 +594,7 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
+            // Interactive Pointer Pan & Stickman Spawn on Click-Drag
             canvas.addEventListener('mousedown', (e) => {
                 isDragging = true;
                 startMouseX = e.clientX;
@@ -615,6 +612,7 @@
             });
 
             canvas.addEventListener('mouseup', (e) => {
+                // If it was a quick click/drag with minimal movement, spawn a 4-meter stickman at world coordinates!
                 const dx = Math.abs(e.clientX - startMouseX);
                 const dy = Math.abs(e.clientY - startMouseY);
                 if (dx < 5 && dy < 5) {
@@ -622,9 +620,31 @@
                     const clickX = e.clientX - rect.left;
                     const clickY = e.clientY - rect.top;
 
-                    // Convert screen click directly using the latest rendered viewport transform
-                    const worldX = (clickX - lastOriginX) / lastWorldScale;
-                    spawnStickman(worldX);
+                    // Convert screen to world meters
+                    const width = canvas.parentElement.clientWidth || 800;
+                    const height = canvas.parentElement.clientHeight || 450;
+                    const paddingX = 80;
+                    const paddingBottom = 60;
+                    let maxDistView = 100;
+                    let maxApexView = 50;
+                    currentTrails.forEach(t => {
+                        if (t.range > maxDistView) maxDistView = t.range * 1.15;
+                        if (t.apex > maxApexView) maxApexView = t.apex * 1.3;
+                    });
+                    const renderWidth = Math.max(100, width - paddingX - 40);
+                    const renderHeight = Math.max(100, height - paddingBottom - 40);
+                    let baseScaleX = renderWidth / maxDistView;
+                    let baseScaleY = renderHeight / maxApexView;
+                    let scale = Math.min(baseScaleX, baseScaleY) * userZoom;
+                    let originX = paddingX + userPanX;
+                    let originY = (height - paddingBottom) + userPanY;
+
+                    const worldX = (clickX - originX) / scale;
+                    const worldY = (originY - clickY) / scale;
+
+                    if (worldY >= 0) {
+                        spawnStickman(worldX, worldY);
+                    }
                 }
                 isDragging = false;
             });
@@ -659,28 +679,30 @@
                 stickmen = [];
             };
 
-            // Spawn 4-Meter Tall Upright Stickman centered at clicked worldX
-            function spawnStickman(x) {
+            // 4-Meter Tall Ragdoll Stickman Constructor & Physics
+            function spawnStickman(x, y) {
+                // 4 meters tall total height
+                // Joints: head, neck, torso, pelvis, leftHand, rightHand, leftFoot, rightFoot
                 const stickman = {
-                    standing: true,
+                    mass: 90.0, // 90 kg human adult
                     parts: {
-                        head: {x: x, y: 4.0, prevX: x, prevY: 4.0},
-                        neck: {x: x, y: 3.3, prevX: x, prevY: 3.3},
-                        torso: {x: x, y: 2.2, prevX: x, prevY: 2.2},
-                        pelvis: {x: x, y: 1.3, prevX: x, prevY: 1.3},
-                        leftHand: {x: x - 0.7, y: 2.4, prevX: x - 0.7, prevY: 2.4},
-                        rightHand: {x: x + 0.7, y: 2.4, prevX: x + 0.7, prevY: 2.4},
-                        leftFoot: {x: x - 0.3, y: 0.0, prevX: x - 0.3, prevY: 0.0},
-                        rightFoot: {x: x + 0.3, y: 0.0, prevX: x + 0.3, prevY: 0.0}
+                        head: {x: x, y: y + 3.6, vx: 0, vy: 0, m: 10},
+                        neck: {x: x, y: y + 3.0, vx: 0, vy: 0, m: 15},
+                        torso: {x: x, y: y + 2.0, vx: 0, vy: 0, m: 40},
+                        pelvis: {x: x, y: y + 1.2, vx: 0, vy: 0, m: 20},
+                        leftHand: {x: x - 0.8, y: y + 2.2, vx: 0, vy: 0, m: 5},
+                        rightHand: {x: x + 0.8, y: y + 2.2, vx: 0, vy: 0, m: 5},
+                        leftFoot: {x: x - 0.4, y: y, vx: 0, vy: 0, m: 5},
+                        rightFoot: {x: x + 0.4, y: y, vx: 0, vy: 0, m: 5}
                     },
                     bones: [
-                        ['head', 'neck', 0.7],
-                        ['neck', 'torso', 1.1],
-                        ['torso', 'pelvis', 0.9],
-                        ['neck', 'leftHand', 1.0],
-                        ['neck', 'rightHand', 1.0],
-                        ['pelvis', 'leftFoot', 1.3],
-                        ['pelvis', 'rightFoot', 1.3]
+                        ['head', 'neck', 0.6],
+                        ['neck', 'torso', 1.0],
+                        ['torso', 'pelvis', 0.8],
+                        ['neck', 'leftHand', 1.1],
+                        ['neck', 'rightHand', 1.1],
+                        ['pelvis', 'leftFoot', 1.2],
+                        ['pelvis', 'rightFoot', 1.2]
                     ]
                 };
                 stickmen.push(stickman);
@@ -688,33 +710,33 @@
 
             function updateStickmen(dt) {
                 stickmen.forEach(sm => {
-                    if (sm.standing) return;
-
                     const keys = Object.keys(sm.parts);
                     keys.forEach(k => {
                         let p = sm.parts[k];
-                        let vx = (p.x - p.prevX) * 0.99;
-                        let vy = (p.y - p.prevY) * 0.99 - 9.8 * dt * dt;
-                        p.prevX = p.x;
-                        p.prevY = p.y;
-                        p.x += vx;
-                        p.y += vy;
+                        // Apply gravity & air drag
+                        p.vy -= 9.8 * dt;
+                        p.vx *= 0.99;
+                        p.vy *= 0.99;
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
 
+                        // Ground collision (y = 0)
                         if (p.y < 0) {
                             p.y = 0;
-                            let groundVx = (p.x - p.prevX) * 0.6;
-                            p.prevX = p.x - groundVx;
+                            p.vy = -p.vy * 0.3; // bounce damping
+                            p.vx *= 0.7; // ground friction
                         }
                     });
 
-                    for (let iter = 0; iter < 6; iter++) {
+                    // Distance constraint satisfaction (Verlet / structural rigidity)
+                    for (let iter = 0; iter < 3; iter++) {
                         sm.bones.forEach(bone => {
                             let p1 = sm.parts[bone[0]];
                             let p2 = sm.parts[bone[1]];
                             let targetDist = bone[2];
                             let dx = p2.x - p1.x;
                             let dy = p2.y - p1.y;
-                            let dist = Math.sqrt(dx * dx + dy * dy);
+                            let dist = Math.sqrt(dx*dx + dy*dy);
                             if (dist > 0.0001) {
                                 let diff = (dist - targetDist) / dist;
                                 let correctionX = dx * 0.5 * diff;
@@ -730,28 +752,21 @@
             }
 
             function checkBulletCollisions(bulletX, bulletY, bulletVx, bulletVy, bulletMass, bulletDiameterMm) {
+                const bulletRadiusM = (bulletDiameterMm / 1000) / 2;
                 stickmen.forEach(sm => {
-                    let hit = false;
                     Object.keys(sm.parts).forEach(partKey => {
                         let p = sm.parts[partKey];
                         let dx = p.x - bulletX;
                         let dy = p.y - bulletY;
-                        let dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < 0.7) {
-                            hit = true;
-                            sm.standing = false;
-                            let impulse = Math.max(0.25, bulletMass * 30.0);
-                            p.prevX -= (bulletVx / Math.max(1, Math.abs(bulletVx))) * impulse * 0.25;
-                            p.prevY -= Math.max(0.15, bulletVy * 0.02 + 0.2);
+                        let dist = Math.sqrt(dx*dx + dy*dy);
+                        // If bullet hits near any body part (within 0.5 meters)
+                        if (dist < 0.6) {
+                            // Momentum transfer (realistic physics impulse: F = dp/dt)
+                            let impulse = bulletMass * 15.0; 
+                            p.vx += (bulletVx / Math.max(1, Math.abs(bulletVx))) * impulse * 1.5;
+                            p.vy += Math.max(2.0, bulletVy * 0.25 + 3.0);
                         }
                     });
-                    if (hit) {
-                        Object.keys(sm.parts).forEach(partKey => {
-                            let p = sm.parts[partKey];
-                            p.prevX -= (bulletVx / Math.max(1, Math.abs(bulletVx))) * 0.08;
-                            p.prevY -= 0.08;
-                        });
-                    }
                 });
             }
 
@@ -999,6 +1014,7 @@
 
                 ctx.clearRect(0, 0, width, height);
 
+                // Update stickmen ragdoll physics
                 updateStickmen(0.016);
 
                 let maxDistView = 100;
@@ -1039,6 +1055,7 @@
                     const bulletX = currentPt.x;
                     const bulletY = currentPt.y;
 
+                    // Check bullet collision with 4m stickmen!
                     checkBulletCollisions(bulletX, bulletY, currentPt.vx, currentPt.vy, activeFlight.data.mass, activeFlight.data.size);
 
                     const curSpeed = Math.sqrt(currentPt.vx * currentPt.vx + currentPt.vy * currentPt.vy);
@@ -1053,11 +1070,6 @@
                         originX = paddingX + targetOffsetX + userPanX;
                     }
                 }
-
-                // Update shared viewport globals so click handler maps coordinates accurately
-                lastWorldScale = scale;
-                lastOriginX = originX;
-                lastOriginY = originY;
 
                 ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
                 ctx.lineWidth = 1;
@@ -1109,7 +1121,7 @@
                 ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
                 ctx.fillRect(paddingX - 20, originY, width - paddingX + 20, height - originY);
 
-                // Draw 4m Upright Stickmen
+                // Draw 4m Stickmen Ragdolls
                 stickmen.forEach(sm => {
                     ctx.strokeStyle = '#0f172a';
                     ctx.lineWidth = 3.5;
@@ -1121,6 +1133,7 @@
                         ctx.lineTo(originX + p2.x * scale, originY - p2.y * scale);
                         ctx.stroke();
                     });
+                    // Draw head circle
                     let head = sm.parts.head;
                     ctx.fillStyle = '#0f172a';
                     ctx.beginPath();
